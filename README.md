@@ -5,22 +5,6 @@
 
 ---
 
-<div align="center">
-
-*"A computer program is said to learn from experience **E** with respect to some class of tasks **T** and performance measure **P**, <br>
-if its performance at tasks in **T**, as measured by **P**, improves with experience **E**."*
-
-*"Se dice que un programa informático aprende de la experiencia **E** con respecto a cierta clase de tareas **T** y una medida de rendimiento **P**, 
-si su rendimiento en las tareas de **T**, medido por **P**, mejora con la experiencia **E**."*
-
-— **Tom M. Mitchell**
-
-Profesor e investigador en aprendizaje automático en la Universidad Carnegie Mellon (CMU); autor del libro 'Machine Learning'.
-
-</div>
-
----
-
 ## 📋 Descripción
 
 Este proyecto implementa un **Multilayer Perceptron (Perceptrón Multicapa)** desde cero, una red neuronal artificial feedforward para clasificación binaria. El objetivo es diagnosticar casos de cáncer de mama como malignos o benignos basándose en características de células nucleares.
@@ -185,21 +169,21 @@ El programa genera automáticamente gráficos de:
 - **Loss curve**: Muestra la evolución de la pérdida durante el entrenamiento
 - **Accuracy curve**: Muestra la precisión en train y validation
 
-<div align="center">
+Ejemplo de visualización esperada:
 
 ```
-Loss                          Accuracy
-0.7│                         1.0│        ┌─── Validation
-   │\                           │      ┌─┘
-0.5│ \    Training              │    ┌─┘
-   │  \                      0.8│  ┌─┘
-0.3│   ────┐                    │┌─┘
-   │        └──── Validation    │└─── Training
-0.1│                         0.6│
-   └───────────────            └───────────────
+    Loss                              Accuracy
+    0.7│                             1.0│         
+       │\                               │        ╱ ─────
+    0.5│ \                              │      ╱  
+       │  \      Training            0.8│    ╱    
+    0.3│   \                            │  ╱      
+       │    \ ────────                  │╱       Training
+       │            Validation          │        
+    0.1│                             0.6│        Validation
+       └──────────────────              └──────────────────
+         Epochs →                         Epochs →
 ```
-
-</div>
 
 ## 🧪 Testing
 
@@ -239,14 +223,14 @@ multilayer-perceptron/
 ├── predict.py                   # Programa de predicción
 ├── mlp/
 │   ├── __init__.py
-│   ├── network.py              # Clase MLP
-│   ├── layers.py               # Implementación de capas
-│   ├── activations.py          # Funciones de activación
-│   ├── losses.py               # Funciones de pérdida
-│   ├── optimizers.py           # Algoritmos de optimización
-│   └── utils.py                # Utilidades (normalización, etc.)
+│   ├── network.py               # Clase MLP
+│   ├── layers.py                # Implementación de capas
+│   ├── activations.py           # Funciones de activación
+│   ├── losses.py                # Funciones de pérdida
+│   ├── optimizers.py            # Algoritmos de optimización
+│   └── utils.py                 # Utilidades (normalización, etc.)
 ├── tests/
-│   └── test_*.py               # Tests unitarios
+│   └── test_*.py                # Tests unitarios
 └── Makefile                     # Automatización de tareas
 ```
 
@@ -276,12 +260,12 @@ Durante la defensa, deberás explicar:
 
 ## 🏆 Autor
 
-Proyecto completado como parte del currículo de **42 School** - Branch Artificial Intelligence
+Proyecto completado como parte del currículo de **42 Málaga** - Branch Artificial Intelligence
 
 ---
 
 <div align="center">
 
-[⬅️ Volver a Artificial Intelligence](../) 
+[⬅️ Volver a Artificial Intelligence](https://github.com/STC71/42_Outer_Core/tree/main/artificial_intelligence)
 
 </div>
