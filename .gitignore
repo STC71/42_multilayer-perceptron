@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+
+# Virtual Environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Project specific - Archivos generados
+
+# Archivos de salida
+
+# Visualizaciones generadas
+*.png
+
+# Logs y resultados de tests
+*.log
+test_results.txt
+
+# PDF del subject (opcional, según preferencia)
+subject_multilayer-perceptron.pdf
+*.pdf
+
