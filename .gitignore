@@ -25,10 +25,20 @@ ENV/
 Thumbs.db
 
 # Project specific - Archivos generados
+data_training.csv
+data_validation.csv
+model_weights.npy
+*.npy
+training_history.json
+history.json
+metrics.json
 
 # Archivos de salida
 
 # Visualizaciones generadas
+loss_curve.png
+accuracy_curve.png
+learning_curves.png
 *.png
 
 # Logs y resultados de tests

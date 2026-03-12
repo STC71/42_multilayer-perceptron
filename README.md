@@ -5,6 +5,28 @@
 
 ---
 
+## 🏆 Resultados Obtenidos
+
+| Métrica | Training | Validation |
+|---------|----------|------------|
+| **Accuracy** | **99.78%** | **96.49%** |
+| **Loss** | 0.0199 | 0.1402 |
+| **Precision** | - | **100%** |
+| **Recall** | - | **92.16%** |
+| **F1-Score** | - | **95.92%** |
+| **Épocas** | 19 (early stopping) | - |
+| **Tiempo** | 7 segundos | - |
+
+🎯 **Matriz de Confusión:**
+- True Positives: 47 (malignos detectados)
+- True Negatives: 63 (benignos detectados)  
+- False Positives: 0 (¡sin falsos malignos!)
+- False Negatives: 4 (4 malignos no detectados)
+
+📊 Ver resultados detallados en [RESULTS.md](RESULTS.md)
+
+---
+
 ## 📋 Descripción
 
 Este proyecto implementa un **Multilayer Perceptron (Perceptrón Multicapa)** desde cero, una red neuronal artificial feedforward para clasificación binaria. El objetivo es diagnosticar casos de cáncer de mama como malignos o benignos basándose en características de células nucleares.
@@ -43,6 +65,8 @@ Este proyecto implementa un **Multilayer Perceptron (Perceptrón Multicapa)** de
 | 🔧 **Inicializadores** | He/Xavier para pesos |
 | 📐 **Activaciones** | Múltiples funciones (sigmoid, tanh, ReLU) |
 | 🔄 **Early Stopping** | Detección automática de convergencia |
+| 🚀 **Adam Optimizer** | Convergencia rápida con momentum adaptativo |
+| 🎲 **Dropout** | Regularización con desactivación aleatoria |
 
 </td>
 </tr>
@@ -93,43 +117,117 @@ python3 split_dataset.py data.csv
 ### 🧠 2. Entrenar el modelo
 
 ```bash
-python3 train.py --dataset data_training.csv --epochs 100
-# o usando Makefile
+# Configuración óptima (ReLU + learning rate 0.05)
+python3 train.py --dataset data_training.csv \
+                 --layers 30 24 24 2 \
+                 --epochs 150 \
+                 --learning_rate 0.05 \
+                 --batch_size 16 \
+                 --activation relu \
+                 --weight_init he \
+                 --early_stopping \
+                 --verbose
+
+# O simplemente:
 make train
 ```
 
 **Ejemplo de salida:**
 ```
-x_train shape : (342, 30)
-x_valid shape : (85, 30)
+x_train shape: (455, 30)
+x_valid shape: (114, 30)
 
-epoch 01/100 - loss: 0.6882 - val_loss: 0.6788 - accuracy: 0.5000 - val_accuracy: 0.5294
-epoch 02/100 - loss: 0.6234 - val_loss: 0.6105 - accuracy: 0.6549 - val_accuracy: 0.6824
+epoch 01/150 - loss: 0.4972 - val_loss: 0.3867 - acc: 0.9055 - val_acc: 0.9211
+epoch 02/150 - loss: 0.3050 - val_loss: 0.2841 - acc: 0.9319 - val_acc: 0.9211
+epoch 03/150 - loss: 0.2059 - val_loss: 0.2013 - acc: 0.9495 - val_acc: 0.9211
 ...
-epoch 100/100 - loss: 0.0640 - val_loss: 0.0474 - accuracy: 0.9912 - val_accuracy: 0.9882
+epoch 19/150 - loss: 0.0199 - val_loss: 0.1402 - acc: 0.9978 - val_acc: 0.9649
 
-> Saving model 'saved_model.npy' to disk...
+⚠️  Early stopping en época 19 (patience=10)
+✅ Modelo guardado en 'model_weights.npy'
 ```
 
 **Parámetros configurables:**
-- `--epochs`: Número de iteraciones (default: 100)
-- `--learning_rate`: Tasa de aprendizaje (default: 0.01)
-- `--batch_size`: Tamaño del mini-batch (default: 32)
-- `--layers`: Arquitectura de capas ocultas (default: 24 24)
+- `--epochs`: Número máximo de iteraciones (default: 100)
+- `--learning_rate`: Tasa de aprendizaje (default: 0.01, **óptimo: 0.05 para SGD, 0.005 para Adam**)
+- `--batch_size`: Tamaño del mini-batch (default: 32, **óptimo: 16**)
+- `--layers`: Arquitectura personalizada (default: 30 24 24 2)
+- `--activation`: Función activación (sigmoid/tanh/**relu**/leaky_relu)
+- `--weight_init`: He/Xavier/Random (default: auto)
+- `--optimizer`: Optimizador (sgd/**adam**/rmsprop/sgd_momentum) **[BONUS]**
+- `--dropout`: Tasa dropout 0.0-0.5 (default: 0.0) **[BONUS]**
+- `--early_stopping`: Detener si validación no mejora
+
+#### 🎁 Entrenar con Bonus Features
+
+**Ejemplo 1: Adam optimizer (converge más rápido)**
+```bash
+python3 train.py --dataset data_training.csv \
+                 --optimizer adam \
+                 --learning_rate 0.005 \
+                 --activation relu \
+                 --weight_init he \
+                 --early_stopping \
+                 --verbose
+```
+**Resultado:** 100% train / 96.49% validation en **14 épocas** (vs 19 con SGD)
+
+**Ejemplo 2: Dropout regularization**
+```bash
+python3 train.py --dataset data_training.csv \
+                 --dropout 0.2 \
+                 --learning_rate 0.05 \
+                 --activation relu \
+                 --weight_init he \
+                 --early_stopping \
+                 --verbose
+```
+**Nota:** Dropout no es necesario para este dataset pequeño (569 samples). Early stopping es suficiente.
+
+**Ejemplo 3: Adam + Dropout combinados**
+```bash
+python3 train.py --optimizer adam \
+                 --dropout 0.2 \
+                 --learning_rate 0.005 \
+                 --batch_size 16 \
+                 --verbose
+```
+
+**Otros optimizers disponibles:**
+```bash
+--optimizer sgd              # Gradient Descent básico (mandatory)
+--optimizer sgd_momentum     # SGD con momentum (β=0.9)
+--optimizer rmsprop          # Adaptive learning rate
+--optimizer adam             # State-of-the-art (momentum + RMSprop)
+```
 
 ### 🔮 3. Hacer predicciones
 
 ```bash
-python3 predict.py --model saved_model.npy --dataset data_validation.csv
+python3 predict.py --model model_weights.npy --dataset data_validation.csv
 # o usando Makefile
 make predict
+```
+
+**Ejemplo de salida real:**
+```
+📊 REPORTE DE EVALUACIÓN
+   Accuracy:    96.49%
+   Precision:   100.00%
+   Recall:      92.16%
+   F1-Score:    95.92%
+
+   Matriz de Confusión:
+              Benigno  Maligno
+   Benigno       63        0
+   Maligno        4       47
 ```
 
 **¿Qué hace?**
 - ✓ Carga el modelo entrenado
 - ✓ Procesa el dataset de validación
 - ✓ Realiza predicciones
-- ✓ Calcula métricas de evaluación
+- ✓ Calcula métricas de evaluación (Binary Cross-Entropy + métricas)
 
 ## 🧮 Conceptos Clave
 

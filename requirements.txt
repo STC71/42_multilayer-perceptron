@@ -1,0 +1,11 @@
+# Multilayer Perceptron - Requirements
+# Dependencias mínimas necesarias para el proyecto
+
+# Álgebra lineal y arrays (permitido por el subject)
+numpy>=1.20.0
+
+# Visualización (permitido para curvas de aprendizaje)
+matplotlib>=3.3.0
+
+# Análisis de datos (opcional, útil para exploración)
+pandas>=1.2.0
