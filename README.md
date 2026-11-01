@@ -3,6 +3,21 @@
 > **Red neuronal artificial para clasificación binaria**  
 > Implementa una red neuronal desde cero para predecir si un cáncer de mama es maligno o benigno.
 
+## 📚 Índice
+
+- [Resultados](#-resultados-obtenidos)
+- [Descripción y objetivos](#-descripción)
+- [Características](#-características)
+- [Dataset](#-dataset)
+- [Instalación](#-instalación)
+- [Uso](#-uso)
+- [Conceptos clave](#-conceptos-clave)
+- [Visualización y testing](#-visualización)
+- [Estructura](#-estructura-real-del-proyecto)
+- [Requisitos y defensa](#️-requisitos-del-proyecto)
+- [Documentación relacionada](#-documentación-relacionada)
+- [Autor](#-autor)
+
 ---
 
 ## 🏆 Resultados Obtenidos
@@ -89,7 +104,7 @@ El dataset **Breast Cancer Wisconsin (Diagnostic)** contiene diagnósticos de c�
 
 ### 📦 Requisitos básicos
 ```bash
-Python 3.x  # Ya instalado en sistemas 42 
+Python 3.x
 ```
 
 ### 🎨 Para visualizaciones
@@ -289,15 +304,11 @@ Ejemplo de visualización esperada:
 # Ejecutar todos los tests
 make test
 
-# Test individual del split
-python3 test_split.py
-
-# Test de entrenamiento con validación
-python3 test_train.py
-
-# Test de predicción
-python3 test_predict.py
+# Test de integración disponible en el repositorio
+python3 test_integration.py
 ```
+
+`make test` y `test_integration.py` son las rutas de prueba actualmente presentes. No se documentan scripts individuales que no existen en el árbol.
 
 ## 📚 Recursos de Aprendizaje
 
@@ -310,27 +321,37 @@ python3 test_predict.py
 - [Neural Networks and Deep Learning (libro online)](http://neuralnetworksanddeeplearning.com/)
 - [Deep Learning Book - Goodfellow](https://www.deeplearningbook.org/)
 
-## 🔧 Estructura del Proyecto
+## 🔧 Estructura real del proyecto
 
 ```
 multilayer-perceptron/
 ├── README.md                    # Este archivo
+├── ARCHITECTURE.md              # Diseño técnico
+├── COMPLIANCE.md                # Requisitos y cumplimiento
+├── EVALUATION.md                # Guía de evaluación
+├── RESULTS.md                   # Resultados medidos
+├── Makefile                     # Automatización de tareas
+├── requirements.txt             # Dependencias Python
 ├── data.csv                     # Dataset original
+├── config.py                    # Configuración
+├── preprocessing.py             # Preparación y normalización
 ├── split_dataset.py             # División del dataset
 ├── train.py                     # Programa de entrenamiento
 ├── predict.py                   # Programa de predicción
-├── mlp/
-│   ├── __init__.py
-│   ├── network.py               # Clase MLP
-│   ├── layers.py                # Implementación de capas
-│   ├── activations.py           # Funciones de activación
-│   ├── losses.py                # Funciones de pérdida
-│   ├── optimizers.py            # Algoritmos de optimización
-│   └── utils.py                 # Utilidades (normalización, etc.)
-├── tests/
-│   └── test_*.py                # Tests unitarios
-└── Makefile                     # Automatización de tareas
+├── explore_dataset.py           # Exploración del dataset
+├── visualize.py                 # Curvas y gráficos
+├── test_integration.py          # Test de integración
+├── network.py                   # Red neuronal
+├── layers.py                    # Capas
+├── activation.py                # Activaciones
+├── loss.py                      # Funciones de pérdida
+├── optimizers.py                # Optimizadores
+├── initialization.py            # Inicialización de pesos
+├── metrics.py                   # Métricas
+└── utils.py                     # Utilidades
 ```
+
+La lista refleja la organización actual del repositorio. Los archivos generados durante el entrenamiento (`data_training.csv`, `data_validation.csv`, `model_weights.npy` y gráficos) no forman parte del código fuente y pueden eliminarse con `make clean`/`make fclean`.
 
 ## ⚖️ Requisitos del Proyecto
 
@@ -356,14 +377,23 @@ Durante la defensa, deberás explicar:
 6. **Learning Rate**: Su impacto en el entrenamiento
 7. **Batch vs Stochastic**: Diferencias y trade-offs
 
+## 📖 Documentación relacionada
+
+- [Arquitectura](./ARCHITECTURE.md)
+- [Cumplimiento del subject](./COMPLIANCE.md)
+- [Guía de evaluación](./EVALUATION.md)
+- [Resultados detallados](./RESULTS.md)
+
 ## 🏆 Autor
 
-Proyecto completado como parte del currículo de **42 Málaga** - Branch Artificial Intelligence
+**sternero** · 42 Málaga · Branch Artificial Intelligence · [GitHub @STC71](https://github.com/STC71)
 
 ---
 
 <div align="center">
 
 [⬅️ Volver a Artificial Intelligence](https://github.com/STC71/42_Outer_Core/tree/main/artificial_intelligence)
+
+[⬆️ Volver arriba](#-multilayer-perceptron)
 
 </div>
