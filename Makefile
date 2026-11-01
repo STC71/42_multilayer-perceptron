@@ -62,6 +62,7 @@ info:
 	@echo "  $(YELLOW)make visualize$(RESET)     - Genera curvas de aprendizaje"
 	@echo "  $(YELLOW)make test$(RESET)          - Ejecuta test de integración"
 	@echo "  $(YELLOW)make test-train$(RESET)    - Test rápido de entrenamiento"
+	@echo "  $(YELLOW)make test-auto$(RESET)     - Ejecuta la suite automática completa"
 	@echo "  $(YELLOW)make clean$(RESET)         - Limpia archivos generados"
 	@echo "  $(YELLOW)make fclean$(RESET)        - Limpieza completa (incluye modelo)"
 	@echo ""
@@ -210,6 +211,10 @@ test-train:
 		--learning_rate 0.05 \
 		--batch_size 16 \
 		--activation relu
+
+.PHONY: test-auto
+test-auto:
+	@./test_auto.sh
 
 # ============================================================================
 # Limpieza

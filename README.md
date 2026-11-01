@@ -306,9 +306,60 @@ make test
 
 # Test de integración disponible en el repositorio
 python3 test_integration.py
+
+# Suite completa aislada (estructura, datos, entrenamiento, predicción y gráficos)
+make test-auto
 ```
 
 `make test` y `test_integration.py` son las rutas de prueba actualmente presentes. No se documentan scripts individuales que no existen en el árbol.
+
+`test_auto.sh` ejecuta la validación en un directorio temporal, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, realiza un entrenamiento corto, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
+
+La suite está diseñada para ofrecer una señal reproducible y trazable, no para prometer ausencia absoluta de bugs: la defensa, las pruebas exploratorias y la revisión del código siguen siendo necesarias.
+
+Por defecto, la suite elimina su directorio temporal al terminar; por eso sus gráficos no aparecen en la carpeta del proyecto. Para inspeccionar los artefactos generados:
+
+```bash
+MLP_KEEP_TEST_ARTIFACTS=1 ./test_auto.sh
+```
+
+La ruta temporal se mostrará al final. Allí se encontrarán `loss.png`, `accuracy.png`, `model.json`, `history.json` y `predictions.csv`.
+
+## 📈 Generación manual de gráficos
+
+Sí, el proyecto debe generar gráficos: el subject exige curvas de `Loss` y `Accuracy` para entrenamiento y validación. Sirven para observar si el modelo aprende, si la pérdida disminuye, si la precisión mejora y si aparece overfitting (por ejemplo, training mejora mientras validation empeora).
+
+Flujo manual completo:
+
+```bash
+# 1. Crear los conjuntos de datos
+python3 split_dataset.py data.csv
+
+# 2. Entrenar y guardar el historial
+python3 train.py \
+  --dataset data_training.csv \
+  --validation data_validation.csv \
+  --layers 24 24 \
+  --epochs 150 \
+  --learning_rate 0.05 \
+  --batch_size 16 \
+  --activation relu \
+  --weight_init he \
+  --early_stopping \
+  --save model_weights.npy \
+  --history training_history.json
+
+# 3. Generar las imágenes
+MPLBACKEND=Agg python3 visualize.py \
+  --history training_history.json \
+  --loss_output loss_curve.png \
+  --accuracy_output accuracy_curve.png
+
+# 4. Comprobar que existen
+ls -lh loss_curve.png accuracy_curve.png
+```
+
+Los archivos se crean en el directorio actual. `make visualize` también los genera, pero requiere que exista previamente `training_history.json`; `make clean` elimina los PNG y `make fclean` elimina además el modelo y el entorno virtual.
 
 ## 📚 Recursos de Aprendizaje
 
