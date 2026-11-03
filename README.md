@@ -13,6 +13,7 @@
 - [Uso](#-uso)
 - [Conceptos clave](#-conceptos-clave)
 - [Visualización y testing](#-visualización)
+- [Guía detallada de test_auto.sh](#-guía-detallada-de-test_autosh)
 - [Estructura](#-estructura-real-del-proyecto)
 - [Requisitos y defensa](#️-requisitos-del-proyecto)
 - [Documentación relacionada](#-documentación-relacionada)
@@ -116,7 +117,35 @@ make install
 
 ## 💻 Uso
 
-### 🔀 1. Dividir el dataset
+El flujo recomendado separa claramente la ejecución del proyecto de su
+validación. Los tests no son pasos necesarios para entrenar y utilizar el
+modelo, aunque sí son muy aconsejables antes de presentarlo o modificarlo.
+
+### 🚀 Flujo normal, sin tests
+
+#### 1. Instalar dependencias
+
+```bash
+make install
+```
+
+Solo es necesario hacerlo la primera vez o después de una limpieza del entorno.
+
+#### 2. Explorar el dataset (opcional)
+
+```bash
+make explore
+```
+
+Permite revisar distribución, dimensiones y estadísticas antes de entrenar.
+
+#### 3. Dividir el dataset
+
+```bash
+make split
+```
+
+También se ejecuta automáticamente como dependencia de `make train`.
 
 ```bash
 python3 split_dataset.py data.csv
@@ -129,7 +158,7 @@ python3 split_dataset.py data.csv
 - ✓ Divide en 80% entrenamiento / 20% validación
 - ✓ Guarda los datasets separados
 
-### 🧠 2. Entrenar el modelo
+#### 4. Entrenar el modelo
 
 ```bash
 # Configuración óptima (ReLU + learning rate 0.05)
@@ -216,13 +245,35 @@ python3 train.py --optimizer adam \
 --optimizer adam             # State-of-the-art (momentum + RMSprop)
 ```
 
-### 🔮 3. Hacer predicciones
+### 📊 5. Generar gráficos
+
+Después del entrenamiento:
+
+```bash
+make visualize
+```
+
+Este target crea `loss_curve.png` y `accuracy_curve.png` a partir de
+`training_history.json`.
+
+### 🔮 6. Hacer predicciones
 
 ```bash
 python3 predict.py --model model_weights.npy --dataset data_validation.csv
 # o usando Makefile
 make predict
 ```
+
+### ⚡ Atajo del flujo normal completo
+
+Para limpiar los resultados anteriores y repetir todos los pasos principales:
+
+```bash
+make re
+```
+
+Este target ejecuta, en orden, `fclean`, división del dataset, entrenamiento,
+visualización y predicción. No ejecuta ningún test.
 
 **Ejemplo de salida real:**
 ```
@@ -298,32 +349,56 @@ Ejemplo de visualización esperada:
          Epochs →                         Epochs →
 ```
 
-## 🧪 Testing
+## 🧪 Validación separada del flujo normal
+
+Los siguientes targets comprueban el proyecto, pero no forman parte del uso
+normal del modelo. Se recomienda ejecutarlos en este orden:
 
 ```bash
-# Ejecutar todos los tests
+# 1. Sintaxis Python
+make check
+
+# 2. Test de integración
 make test
 
-# Test de integración disponible en el repositorio
-python3 test_integration.py
+# 3. Entrenamiento corto
+make test-train
 
-# Suite completa aislada (estructura, datos, entrenamiento, predicción y gráficos)
+# 4. Suite completa: estructura, datos, entrenamiento, predicción y gráficos
 make test-auto
 ```
 
-`make test` y `test_integration.py` son las rutas de prueba actualmente presentes. No se documentan scripts individuales que no existen en el árbol.
+`make test` divide el dataset y ejecuta `test_integration.py`. `make test-train`
+también prepara previamente la partición de datos. Por tanto, cada prueba puede
+ejecutarse desde un estado limpio sin depender de un comando anterior.
 
-`test_auto.sh` ejecuta la validación en un directorio temporal, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, realiza un entrenamiento corto, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
+La suite automática es más amplia que los tests individuales y genera sus
+resultados aislados en `test_auto_artifacts/`. Su documentación detallada está
+en [test_auto.md](./test_auto.md).
+
+`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, realiza un entrenamiento corto, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
 
 La suite está diseñada para ofrecer una señal reproducible y trazable, no para prometer ausencia absoluta de bugs: la defensa, las pruebas exploratorias y la revisión del código siguen siendo necesarias.
 
-Por defecto, la suite elimina su directorio temporal al terminar; por eso sus gráficos no aparecen en la carpeta del proyecto. Para inspeccionar los artefactos generados:
+La suite crea `test_auto_artifacts/` en el directorio del proyecto. Esta carpeta está ignorada por Git y contiene los artefactos de la ejecución. Los gráficos se intentan abrir inmediatamente después de generarse mediante el visor predeterminado del sistema; en un servidor sin interfaz gráfica se informa de la ruta para abrirlos manualmente.
 
 ```bash
-MLP_KEEP_TEST_ARTIFACTS=1 ./test_auto.sh
+./test_auto.sh
 ```
 
-La ruta temporal se mostrará al final. Allí se encontrarán `loss.png`, `accuracy.png`, `model.json`, `history.json` y `predictions.csv`.
+Durante una ejecución interactiva se puede pulsar INTRO entre secciones. Al final se elige:
+
+- `clean`: elimina datasets, historial, imágenes y artefactos del test.
+- `fclean`: hace lo anterior y elimina también modelo y entorno virtual.
+- `continuar`: conserva los artefactos para inspección manual.
+
+Para automatización o CI:
+
+```bash
+./test_auto.sh --non-interactive
+```
+
+En ese modo no hay pausas ni visor gráfico interactivo; los ficheros quedan en `test_auto_artifacts/`. `--no-graphs` evita incluso el intento de abrir el visor, pero conserva los PNG.
 
 ## 📈 Generación manual de gráficos
 
@@ -392,6 +467,8 @@ multilayer-perceptron/
 ├── explore_dataset.py           # Exploración del dataset
 ├── visualize.py                 # Curvas y gráficos
 ├── test_integration.py          # Test de integración
+├── test_auto.sh                 # Suite automática completa
+├── test_auto.md                 # Guía de la suite automática
 ├── network.py                   # Red neuronal
 ├── layers.py                    # Capas
 ├── activation.py                # Activaciones
@@ -434,6 +511,7 @@ Durante la defensa, deberás explicar:
 - [Cumplimiento del subject](./COMPLIANCE.md)
 - [Guía de evaluación](./EVALUATION.md)
 - [Resultados detallados](./RESULTS.md)
+- [Guía completa de test_auto.sh](./test_auto.md)
 
 ## 🏆 Autor
 

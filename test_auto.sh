@@ -3,8 +3,8 @@
 # ============================================================================
 # test_auto.sh - Suite automatica del Multilayer Perceptron
 # ============================================================================
-# Todas las pruebas se ejecutan en un directorio temporal. El script no
-# modifica el repositorio y termina con codigo 0 solo si pasa lo obligatorio.
+# Las pruebas usan una carpeta de artefactos ignorada por Git. El script no
+# modifica el codigo fuente y termina con codigo 0 solo si pasa lo obligatorio.
 # ============================================================================
 
 set -u
@@ -19,8 +19,40 @@ NEGRITA='\033[1m'
 RESET='\033[0m'
 
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-TMP="$(mktemp -d "${TMPDIR:-/tmp}/mlp-test.XXXXXX")"
+TMP="$RAIZ/test_auto_artifacts"
 LOGS="$TMP/logs"
+INTERACTIVO=0
+PAUSA=1
+ABRIR_GRAFICOS=1
+ANCHO_CABECERA=68
+if [[ -t 0 && -t 1 ]]; then
+    INTERACTIVO=1
+fi
+
+for argumento in "$@"; do
+    case "$argumento" in
+        --no-pause|--non-interactive)
+            INTERACTIVO=0
+            PAUSA=0
+            ;;
+        --no-graphs)
+            ABRIR_GRAFICOS=0
+            ;;
+        --help|-h)
+            printf '%s\n' \
+                "Uso: ./test_auto.sh [--no-pause|--non-interactive] [--no-graphs]" \
+                "  --no-pause         Ejecuta sin esperar INTRO entre secciones." \
+                "  --no-graphs        Genera los PNG pero no intenta abrirlos."
+            exit 0
+            ;;
+        *)
+            printf '%bArgumento desconocido:%b %s\n' "$ROJO" "$RESET" "$argumento" >&2
+            exit 2
+            ;;
+    esac
+done
+
+rm -rf "$TMP"
 mkdir -p "$LOGS"
 
 TOTAL=0
@@ -29,28 +61,96 @@ FALLIDAS=0
 AVISOS=0
 OBLIGATORIAS=0
 BONUS_PASADOS=0
+DETALLE_QUE=""
+DETALLE_POR_QUE=""
+DETALLE_IMPLEMENTACION=""
 
 limpiar() {
-    if [[ "${MLP_KEEP_TEST_ARTIFACTS:-0}" == "1" ]]; then
-        printf '\n%bArtefactos conservados en:%b %s\n' "$AMARILLO" "$RESET" "$TMP"
-    else
-        rm -rf "$TMP"
-    fi
+    :
 }
 trap limpiar EXIT
 
 cabecera() {
+    local titulo="$1"
+    local espacios=$((ANCHO_CABECERA - ${#titulo} - 2))
+    if [[ "$PAUSA" -eq 1 && "$INTERACTIVO" -eq 1 && "$TOTAL" -gt 0 ]]; then
+        printf '\n%bPulsa INTRO para continuar con la siguiente seccion...%b' "$AMARILLO" "$RESET"
+        read -r
+    fi
     printf '\n%b╔════════════════════════════════════════════════════════════════════╗%b\n' "$AZUL" "$RESET"
-    printf '%b║%b %-66s %b║%b\n' "$AZUL" "$NEGRITA" "$1" "$AZUL" "$RESET"
+    printf '%b║%b %s%*s %b║%b\n' "$AZUL" "$NEGRITA" "$titulo" "$espacios" "" "$AZUL" "$RESET"
     printf '%b╚════════════════════════════════════════════════════════════════════╝%b\n' "$AZUL" "$RESET"
 }
 
+abrir_grafico() {
+    local archivo="$1"
+    printf '  %bGrafico generado:%b %s\n' "$VERDE" "$RESET" "$archivo"
+    if [[ "$ABRIR_GRAFICOS" -eq 0 ]]; then
+        printf '  %bVisualizacion:%b desactivada mediante --no-graphs\n' "$AMARILLO" "$RESET"
+        return
+    fi
+    if command -v xdg-open >/dev/null 2>&1; then
+        xdg-open "$archivo" >/dev/null 2>&1 &
+        printf '  %bVisualizacion:%b se ha solicitado al visor predeterminado del sistema\n' "$CIRAN" "$RESET"
+    elif command -v gio >/dev/null 2>&1; then
+        gio open "$archivo" >/dev/null 2>&1 &
+        printf '  %bVisualizacion:%b se ha solicitado a Gio\n' "$CIRAN" "$RESET"
+    elif command -v open >/dev/null 2>&1; then
+        open "$archivo" >/dev/null 2>&1 &
+        printf '  %bVisualizacion:%b se ha solicitado al visor de macOS\n' "$CIRAN" "$RESET"
+    else
+        printf '  %bVisualizacion:%b no hay visor grafico disponible; abre el archivo manualmente\n' "$AMARILLO" "$RESET"
+    fi
+}
+
+finalizar() {
+    local eleccion
+    if [[ "$INTERACTIVO" -eq 0 ]]; then
+        printf '\n%bArtefactos conservados en:%b %s\n' "$AMARILLO" "$RESET" "$TMP"
+        return
+    fi
+    printf '\n%bLimpieza final%b\n' "$AZUL" "$RESET"
+    printf '  clean   : elimina datasets, historial, imagenes y artefactos de test.\n'
+    printf '  fclean  : hace clean y elimina tambien modelo y entorno virtual.\n'
+    printf '  continuar: conserva todo para inspeccion manual.\n'
+    while true; do
+        printf '%bElige [clean/fclean/continuar] (continuar):%b ' "$AMARILLO" "$RESET"
+        read -r eleccion
+        eleccion="${eleccion:-continuar}"
+        case "$eleccion" in
+            clean)
+                make -C "$RAIZ" clean >/dev/null
+                rm -rf "$TMP"
+                printf '%bClean ejecutado. Se han eliminado los artefactos generados.%b\n' "$VERDE" "$RESET"
+                break
+                ;;
+            fclean)
+                make -C "$RAIZ" fclean >/dev/null
+                rm -rf "$TMP"
+                printf '%bFclean ejecutado. Tambien se han eliminado modelo y entorno virtual.%b\n' "$VERDE" "$RESET"
+                break
+                ;;
+            continuar)
+                printf '%bArtefactos conservados en:%b %s\n' "$AMARILLO" "$RESET" "$TMP"
+                break
+                ;;
+            *)
+                printf '%bRespuesta no valida. Escribe clean, fclean o continuar.%b\n' "$ROJO" "$RESET"
+                ;;
+        esac
+    done
+}
+
 explicar() {
-    printf '  %bQue hace:%b %s\n' "$CIRAN" "$RESET" "$1"
-    printf '  %bPor que:%b %s\n' "$CIRAN" "$RESET" "$2"
+    DETALLE_QUE="$1"
+    DETALLE_POR_QUE="$2"
+    DETALLE_IMPLEMENTACION=""
 }
 
 guia_manual() {
+    printf '  %bQue hace:%b %s\n' "$CIRAN" "$RESET" "$DETALLE_QUE"
+    printf '  %bPor que:%b %s\n' "$CIRAN" "$RESET" "$DETALLE_POR_QUE"
+    printf '  %bImplementacion:%b %s\n' "$CIRAN" "$RESET" "${DETALLE_IMPLEMENTACION:-no localizada dinamicamente}"
     printf '  %bRepetir manualmente:%b %s\n' "$CIRAN" "$RESET" "$1"
     printf '  %bResultado esperado:%b %s\n' "$CIRAN" "$RESET" "$2"
 }
@@ -61,9 +161,9 @@ referencia() {
     local linea
     linea="$(grep -nE "$patron" "$RAIZ/$archivo" 2>/dev/null | head -1 | cut -d: -f1)"
     if [[ -n "$linea" ]]; then
-        printf '  %bImplementacion:%b %s:%s\n' "$CIRAN" "$RESET" "$archivo" "$linea"
+        DETALLE_IMPLEMENTACION="$archivo:$linea"
     else
-        printf '  %bImplementacion:%b no localizada dinamicamente (%s)\n' "$AMARILLO" "$RESET" "$archivo"
+        DETALLE_IMPLEMENTACION="no localizada dinamicamente ($archivo)"
     fi
 }
 
@@ -94,7 +194,6 @@ obligatoria() {
 ejecutar() {
     local nombre="$1"
     shift
-    prueba "$nombre"
     if "$@" >"$LOGS/prueba-$TOTAL.log" 2>&1; then
         pasar "$nombre"
         return 0
@@ -108,13 +207,13 @@ copiar_fuentes() {
     cp "$RAIZ"/*.py "$RAIZ/data.csv" "$TMP/"
 }
 
-cabecera "MULTILAYER PERCEPTRON · SUITE AUTOMATICA "
+cabecera "MULTILAYER PERCEPTRON · SUITE AUTOMATICA"
 printf '  %bProyecto:%b %s\n' "$CIRAN" "$RESET" "$RAIZ"
-printf '  %bAislamiento:%b %s\n' "$CIRAN" "$RESET" "$TMP"
+printf '  %bArtefactos:%b %s\n' "$CIRAN" "$RESET" "$TMP"
 printf '  %bResultado:%b las obligatorias deben pasar; los bonus se informan aparte\n' "$CIRAN" "$RESET"
-printf '  %bPara conservar modelos y graficos:%b MLP_KEEP_TEST_ARTIFACTS=1 ./test_auto.sh\n' "$CIRAN" "$RESET"
+printf '  %bModo:%b %s\n' "$CIRAN" "$RESET" "$([[ "$INTERACTIVO" -eq 1 ]] && echo interactivo || echo no-interactivo)"
 
-cabecera "1 · ENTORNO Y ESTRUCTURA "
+cabecera "1 · ENTORNO Y ESTRUCTURA"
 obligatoria
 explicar "Comprueba que Python 3 puede ejecutar la suite." \
     "Sin el interprete no se puede evaluar el proyecto."
@@ -163,7 +262,7 @@ else
     sed -n '1,35p' "$LOGS/sintaxis.log"
 fi
 
-cabecera "2 · RESTRICCIONES Y DATASET "
+cabecera "2 · RESTRICCIONES Y DATASET"
 obligatoria
 explicar "Analiza imports reales con el modulo ast de Python, no con una busqueda textual." \
     "Un comentario que mencione PyTorch no es una dependencia; un import si lo es."
@@ -229,9 +328,10 @@ else
     cat "$LOGS/dataset.log"
 fi
 
-cabecera "3 · DIVISION Y TEST DE INTEGRACION "
+cabecera "3 · DIVISION Y TEST DE INTEGRACION"
 copiar_fuentes
 obligatoria
+prueba "Division reproducible 80/20 y sin perdida de filas"
 explicar "Divide con seed 42, comprueba 455/114 filas y repite en otra pareja de archivos." \
     "La misma entrada debe producir la misma particion; los dos conjuntos deben conservar todas las muestras."
 referencia "split_dataset.py" "def split_dataset"
@@ -260,6 +360,7 @@ else
 fi
 
 obligatoria
+prueba "Test de integracion existente"
 explicar "Ejecuta el flujo de integracion que ya existe en el proyecto." \
     "Comprueba conjuntamente preprocesamiento, red, entrenamiento, guardado/carga y metricas."
 referencia "test_integration.py" "def main"
@@ -271,8 +372,9 @@ ejecutar "Test de integracion existente" bash -c "
     python3 test_integration.py
 "
 
-cabecera "4 · ENTRENAMIENTO Y MODELO "
+cabecera "4 · ENTRENAMIENTO Y MODELO"
 obligatoria
+prueba "Entrenamiento corto con modelo e historial"
 explicar "Entrena 20 epocas en un directorio aislado y exige modelo e historial no vacios." \
     "Prueba el camino real del CLI, no solo imports o funciones unitarias."
 referencia "train.py" "def train_epoch"
@@ -341,8 +443,9 @@ else
     cat "$LOGS/bce.log"
 fi
 
-cabecera "5 · PREDICCION Y METRICAS "
+cabecera "5 · PREDICCION Y METRICAS"
 obligatoria
+prueba "Prediccion sobre validacion y CSV de salida"
 explicar "Carga el modelo entrenado, reutiliza su preprocesamiento y genera una fila por muestra." \
     "Valida la interfaz de prediccion y que las probabilidades sean utilizables."
 referencia "predict.py" "def save_predictions"
@@ -387,8 +490,9 @@ else
     cat "$LOGS/predicciones.log"
 fi
 
-cabecera "6 · VISUALIZACION "
+cabecera "6 · VISUALIZACION"
 obligatoria
+prueba "Curvas loss y accuracy en backend no interactivo"
 explicar "Genera las curvas sin abrir una ventana grafica." \
     "Permite validar visualizacion en CI, SSH y servidores sin escritorio."
 referencia "visualize.py" "def plot_loss_curve"
@@ -399,11 +503,19 @@ ejecutar "Curvas loss y accuracy en backend no interactivo" bash -c "
         --loss_output loss.png --accuracy_output accuracy.png >/dev/null &&
     test -s loss.png && test -s accuracy.png
 "
+if [[ -s "$TMP/loss.png" ]]; then
+    abrir_grafico "$TMP/loss.png"
+    printf '  %bQue estas viendo:%b eje X=epocas; eje Y=perdida. Las curvas training y validation deberian tender a bajar. Una validation que empeora mientras training mejora puede indicar overfitting.\n' "$CIRAN" "$RESET"
+fi
+if [[ -s "$TMP/accuracy.png" ]]; then
+    abrir_grafico "$TMP/accuracy.png"
+    printf '  %bQue estas viendo:%b eje X=epocas; eje Y=accuracy. Las curvas training y validation deberian subir y mantenerse razonablemente proximas; una gran separacion sugiere overfitting.\n' "$CIRAN" "$RESET"
+fi
 
-cabecera "7 · BONUS EJECUTABLES "
+cabecera "7 · BONUS EJECUTABLES"
 explicar "Ejecuta configuraciones bonus reales cuando el CLI las ofrece." \
     "Buscar palabras en el codigo solo demuestra que se mencionan; ejecutar demuestra que funcionan."
-prueba "Optimizer Adam"
+prueba "Optimizador Adam"
 guia_manual "python3 train.py --dataset data_training.csv --optimizer adam --epochs 2 --save adam.json" "El entrenamiento termina y crea adam.json."
 if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv \
     --layers 8 8 --epochs 2 --learning_rate 0.005 --batch_size 32 \
@@ -438,8 +550,10 @@ printf '  %bBonus ejecutados:%b %d\n' "$CIRAN" "$RESET" "$BONUS_PASADOS"
 if [[ "$FALLIDAS" -eq 0 ]]; then
     printf '\n%b✅ Todas las comprobaciones obligatorias han pasado.%b\n' "$VERDE" "$RESET"
     printf '%bNota:%b pasar esta suite no sustituye una defensa ni demuestra ausencia absoluta de bugs.\n' "$AMARILLO" "$RESET"
+    finalizar
     exit 0
 fi
 
 printf '\n%b❌ Hay comprobaciones fallidas. Revisa los diagnosticos anteriores.%b\n' "$ROJO" "$RESET"
+finalizar
 exit 1

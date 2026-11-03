@@ -31,7 +31,7 @@ all: info
 .PHONY: info
 info:
 	@echo "$(CYAN)╔════════════════════════════════════════════════════════════════════╗$(RESET)"
-	@echo "$(CYAN)║          🧠 MULTILAYER PERCEPTRON - PROYECTO 42                    ║$(RESET)"
+	@echo "$(CYAN)║          🧠 MULTILAYER PERCEPTRON - sternero - 42 Málaga           ║$(RESET)"
 	@echo "$(CYAN)╚════════════════════════════════════════════════════════════════════╝$(RESET)"
 	@echo ""
 	@echo "$(GREEN)� Estado del Proyecto:$(RESET)"
@@ -51,20 +51,27 @@ info:
 	@echo ""
 	@echo "$(GREEN)📋 Comandos disponibles:$(RESET)"
 	@echo ""
-	@echo "  $(YELLOW)make install$(RESET)       - Instala dependencias (numpy, matplotlib)"
-	@echo "  $(YELLOW)make explore$(RESET)       - Explora y analiza el dataset"
-	@echo "  $(YELLOW)make split$(RESET)         - Divide dataset en train/validation"
-	@echo "  $(YELLOW)make train$(RESET)         - Entrena el modelo (SGD, 7s, 96% accuracy)"
-	@echo "  $(YELLOW)make train-fast$(RESET)    - Entrenamiento rápido (20 épocas)"
-	@echo "  $(YELLOW)make train-adam$(RESET)    - Entrena con Adam optimizer (BONUS)"
-	@echo "  $(YELLOW)make train-adam-dropout$(RESET) - Adam + Dropout 0.2 (BONUS)"
-	@echo "  $(YELLOW)make predict$(RESET)       - Realiza predicciones + métricas"
-	@echo "  $(YELLOW)make visualize$(RESET)     - Genera curvas de aprendizaje"
-	@echo "  $(YELLOW)make test$(RESET)          - Ejecuta test de integración"
-	@echo "  $(YELLOW)make test-train$(RESET)    - Test rápido de entrenamiento"
-	@echo "  $(YELLOW)make test-auto$(RESET)     - Ejecuta la suite automática completa"
-	@echo "  $(YELLOW)make clean$(RESET)         - Limpia archivos generados"
-	@echo "  $(YELLOW)make fclean$(RESET)        - Limpieza completa (incluye modelo)"
+	@echo "$(BLUE)▶ FLUJO NORMAL (sin tests)$(RESET)"
+	@echo "  $(YELLOW)1. make install$(RESET)    - Instala dependencias (primera ejecución)"
+	@echo "  $(YELLOW)2. make explore$(RESET)    - Explora y analiza el dataset (opcional)"
+	@echo "  $(YELLOW)3. make split$(RESET)      - Divide dataset en train/validation"
+	@echo "  $(YELLOW)4. make train$(RESET)      - Entrena el modelo principal"
+	@echo "     make train-fast             - Alternativa rápida (20 épocas)"
+	@echo "     make train-adam             - Alternativa con Adam (BONUS)"
+	@echo "     make train-adam-dropout     - Adam + Dropout (BONUS)"
+	@echo "  $(YELLOW)5. make visualize$(RESET)  - Genera curvas de aprendizaje"
+	@echo "  $(YELLOW)6. make predict$(RESET)    - Realiza predicciones y métricas"
+	@echo ""
+	@echo "$(BLUE)▶ VALIDACIÓN (separada del flujo normal)$(RESET)"
+	@echo "  $(YELLOW)1. make check$(RESET)       - Comprueba la sintaxis Python"
+	@echo "  $(YELLOW)2. make test$(RESET)        - Ejecuta el test de integración"
+	@echo "  $(YELLOW)3. make test-train$(RESET)  - Ejecuta un entrenamiento corto"
+	@echo "  $(YELLOW)4. make test-auto$(RESET)   - Ejecuta la suite completa"
+	@echo ""
+	@echo "$(BLUE)▶ LIMPIEZA Y RECONSTRUCCIÓN$(RESET)"
+	@echo "  $(YELLOW)make clean$(RESET)          - Elimina resultados regenerables"
+	@echo "  $(YELLOW)make fclean$(RESET)         - Limpieza completa, incluido modelo"
+	@echo "  $(YELLOW)make re$(RESET)             - fclean + flujo normal completo"
 	@echo ""
 	@echo "$(GREEN)📖 Documentación:$(RESET)"
 	@echo ""
@@ -203,7 +210,7 @@ test: split
 	@$(PYTHON) test_integration.py
 
 .PHONY: test-train
-test-train:
+test-train: split
 	@echo "$(CYAN)🧪 Test rápido de entrenamiento (5 épocas)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
 		--layers 30 16 16 2 \
@@ -224,8 +231,9 @@ test-auto:
 clean:
 	@echo "$(YELLOW)🧹 Limpiando archivos generados...$(RESET)"
 	@rm -f $(TRAIN_DATA) $(VALID_DATA)
-	@rm -f training_history.json metrics.json
+	@rm -f training_history.json history.json metrics.json
 	@rm -f *.png
+	@rm -rf test_auto_artifacts
 	@rm -rf __pycache__
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
@@ -235,13 +243,12 @@ clean:
 fclean: clean
 	@echo "$(RED)🗑️  Limpieza completa (incluye modelo y venv)...$(RESET)"
 	@rm -f $(MODEL)
+	@rm -f *.npy
 	@rm -rf venv
 	@echo "$(GREEN)✅ Limpieza completa finalizada$(RESET)"
-	@rm -f *.npy
-	@echo "$(GREEN)✅ Limpieza completa terminada$(RESET)"
 
 .PHONY: re
-re: fclean all
+re: fclean train visualize predict
 
 # ============================================================================
 # Desarrollo

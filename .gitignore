@@ -44,8 +44,8 @@ learning_curves.png
 # Logs y resultados de tests
 *.log
 test_results.txt
+test_auto_artifacts/
 
 # PDF del subject (opcional, según preferencia)
 subject_multilayer-perceptron.pdf
 *.pdf
-
