@@ -1,0 +1,85 @@
+
+╔==============================================================================╗
+║                    🧪 TEST DE INTEGRACIÓN COMPLETO                          ║
+╚==============================================================================╝
+
+================================================================================
+🧪 TEST 1: División del dataset
+================================================================================
+
+✅ Archivos de división encontrados
+
+================================================================================
+🧪 TEST 2: Preprocesamiento de datos
+================================================================================
+
+   ✓ Cargadas 455 muestras
+   ✓ Labels codificados: 455 valores
+   ✓ Features normalizados: shape (455, 30)
+   ✓ Feature 0: mean=-0.000000, std=1.000000
+   ✓ Normalización (standardization) funciona correctamente
+
+================================================================================
+🧪 TEST 3: Creación de red neuronal
+================================================================================
+
+   ✓ Red creada: Network(30 → 16 → 16 → 2, params=802)
+   ✓ Parámetros: 802
+
+================================================================================
+🧪 TEST 4: Entrenamiento (5 épocas de prueba)
+================================================================================
+
+   Train: 455 muestras
+   Valid: 114 muestras
+
+   epoch 01/05 - loss: 0.6564 - val_loss: 0.7160 - acc: 0.6462 - val_acc: 0.5526
+   epoch 02/05 - loss: 0.6519 - val_loss: 0.7093 - acc: 0.6462 - val_acc: 0.5526
+   epoch 03/05 - loss: 0.6476 - val_loss: 0.7032 - acc: 0.6462 - val_acc: 0.5526
+   epoch 04/05 - loss: 0.6434 - val_loss: 0.6975 - acc: 0.6462 - val_acc: 0.5526
+   epoch 05/05 - loss: 0.6392 - val_loss: 0.6922 - acc: 0.6462 - val_acc: 0.5526
+
+   ✅ Entrenamiento de prueba completado
+
+================================================================================
+🧪 TEST 5: Guardar y cargar modelo
+================================================================================
+
+   ✓ Modelo guardado en 'test_model.json'
+   ✓ Modelo cargado correctamente
+   ✓ Arquitectura verificada
+   ✓ Archivo de test eliminado
+
+================================================================================
+🧪 TEST 6: Métricas de evaluación
+================================================================================
+
+   Accuracy:  1.0000
+   Precision: 1.0000
+   Recall:    1.0000
+   F1-Score:  1.0000
+
+   ✅ Métricas calculadas correctamente
+
+================================================================================
+📊 RESUMEN DE TESTS
+================================================================================
+
+   ✅ PASS  División de datos
+   ✅ PASS  Preprocesamiento
+   ✅ PASS  Creación de red
+   ✅ PASS  Entrenamiento
+   ✅ PASS  Guardar/Cargar modelo
+   ✅ PASS  Métricas
+
+================================================================================
+✅ TODOS LOS TESTS PASARON CORRECTAMENTE
+================================================================================
+
+🎉 El sistema está listo para entrenamiento real
+
+📝 Comandos sugeridos:
+   1. make split    # Dividir dataset (ya hecho)
+   2. make train    # Entrenar modelo
+   3. make predict  # Hacer predicciones
+
