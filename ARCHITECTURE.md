@@ -1,11 +1,21 @@
 # 🏗️ Arquitectura del Proyecto - Multilayer Perceptron
 
+## 🧭 Navegación
+
+[README](./README.md) · [MATES](./MATES.md) · [COMPLIANCE](./COMPLIANCE.md) ·
+[EVALUATION](./EVALUATION.md) · [RESULTS](./RESULTS.md) ·
+[test_auto.md](./test_auto.md)
+
+La explicación detallada de las ecuaciones utilizadas por esta arquitectura
+está en [MATES.md](./MATES.md).
+
 ## 📁 Estructura de Archivos
 
 ```
 multilayer-perceptron/
 ├── 📄 README.md                    # Documentación general del proyecto
 ├── 📄 ARCHITECTURE.md              # Este archivo - arquitectura del proyecto
+├── 📄 MATES.md                     # Fundamentos matemáticos
 ├── 📄 Makefile                     # Automatización de tareas
 ├── 📄 requirements.txt             # Dependencias Python
 ├── 📄 .gitignore                   # Archivos a ignorar por git

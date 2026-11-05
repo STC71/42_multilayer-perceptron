@@ -4,6 +4,15 @@
 > **Fecha de implementación:** $(date +%Y-%m-%d)  
 > **Estado:** ✅ Mandatory implementado; bonus verificados por ejecución
 
+## 🧭 Navegación
+
+[README](./README.md) · [MATES](./MATES.md) ·
+[ARCHITECTURE](./ARCHITECTURE.md) · [EVALUATION](./EVALUATION.md) ·
+[RESULTS](./RESULTS.md) · [test_auto.md](./test_auto.md)
+
+Las fórmulas y la justificación matemática de este checklist están desarrolladas
+en [MATES.md](./MATES.md).
+
 ---
 
 ## 📋 Mandatory Requirements (Páginas 7-10)
@@ -473,7 +482,7 @@ E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
 | **Mandatory Requirements** | ✅ IMPLEMENTADO | Verificado con suite automática y defensa |
 | **Bonus Features** | ✅ IMPLEMENTADOS | Verificados individualmente; sujetos a defensa |
 | **Code Quality** | ✅ ALTA | Código modular y comprobaciones reproducibles |
-| **Documentation** | ✅ COMPLETA | README + ARCHITECTURE + RESULTS |
+| **Documentation** | ✅ COMPLETA | README + MATES + ARCHITECTURE + RESULTS |
 | **Performance** | ✅ EXCELENTE | 96.49% accuracy |
 
 ### 📝 Puntos Destacados
@@ -501,6 +510,7 @@ E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
 
 **Archivos de referencia para defensa:**
 - `ARCHITECTURE.md`: Diseño completo del sistema
+- `MATES.md`: Fundamentos matemáticos y derivaciones
 - `RESULTS.md`: Resultados detallados + análisis
 - Código fuente: Todas las fórmulas documentadas en `loss.py`, `activation.py`, `network.py`, `optimizers.py`
 

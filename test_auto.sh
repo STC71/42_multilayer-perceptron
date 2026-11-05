@@ -150,8 +150,8 @@ explicar() {
 guia_manual() {
     printf '  %bQue hace:%b %s\n' "$CIRAN" "$RESET" "$DETALLE_QUE"
     printf '  %bPor que:%b %s\n' "$CIRAN" "$RESET" "$DETALLE_POR_QUE"
-    printf '  %bImplementacion:%b %s\n' "$CIRAN" "$RESET" "${DETALLE_IMPLEMENTACION:-no localizada dinamicamente}"
-    printf '  %bRepetir manualmente:%b %s\n' "$CIRAN" "$RESET" "$1"
+    printf '  %bImplementacion:%b %s\n' "$CIRAN" "$RESET" "${DETALLE_IMPLEMENTACION:-No se ha definido un simbolo unico: la prueba se basa en el contrato observable y se valida por su resultado real.}"
+    printf '  %bRepetir manualmente:%b %b%s%b\n' "$CIRAN" "$RESET" "$VERDE" "$1" "$RESET"
     printf '  %bResultado esperado:%b %s\n' "$CIRAN" "$RESET" "$2"
 }
 
@@ -163,7 +163,7 @@ referencia() {
     if [[ -n "$linea" ]]; then
         DETALLE_IMPLEMENTACION="$archivo:$linea"
     else
-        DETALLE_IMPLEMENTACION="no localizada dinamicamente ($archivo)"
+        DETALLE_IMPLEMENTACION="No localizada: el patron '$patron' no aparece en $archivo. La prueba sigue validando el comportamiento observable; si el codigo cambia, disminuye la trazabilidad y conviene revisar este patron."
     fi
 }
 
@@ -234,7 +234,8 @@ guia_manual "find . -maxdepth 1 -type f | sort" "Aparecen data.csv, los modulos 
 archivos=(
     data.csv split_dataset.py preprocessing.py network.py layers.py
     activation.py loss.py metrics.py optimizers.py train.py predict.py
-    visualize.py test_integration.py requirements.txt Makefile
+    visualize.py test_integration.py test_gradient_check.py
+    test_dropout_gradient.py requirements.txt Makefile
 )
 faltan=0
 for archivo in "${archivos[@]}"; do
@@ -392,36 +393,7 @@ explicar "Compara los gradientes de backpropagation con diferencias finitas en u
     "Una red puede entrenar y aun tener derivadas incorrectas; esta prueba valida la matematica central."
 referencia "network.py" "def _backward_batch"
 guia_manual "python3 test_gradient_check.py" "El error maximo absoluto de los gradientes es menor que 1e-5."
-if (cd "$TMP" && python3 - <<'PY' >"$LOGS/gradient-check.log" 2>&1
-from network import Network
-
-network = Network(loss='categorical_crossentropy', learning_rate=0.01)
-network.build([2, 3, 2], ['tanh', 'softmax'], weight_init='xavier', seed=7)
-inputs = [[0.2, -0.4]]
-targets = [1]
-predictions = network.forward(inputs)
-network.backward(targets, predictions)
-errors = []
-epsilon = 1e-6
-
-for layer in network.layers:
-    for row_index in range(layer.n_out):
-        for column_index in range(layer.n_in):
-            original = layer.weights[row_index][column_index]
-            layer.weights[row_index][column_index] = original + epsilon
-            loss_plus = network.compute_loss(targets, network.forward(inputs))
-            layer.weights[row_index][column_index] = original - epsilon
-            loss_minus = network.compute_loss(targets, network.forward(inputs))
-            layer.weights[row_index][column_index] = original
-            numerical = (loss_plus - loss_minus) / (2 * epsilon)
-            errors.append(abs(numerical - layer.dW[row_index][column_index]))
-
-maximum_error = max(errors)
-if maximum_error >= 1e-5:
-    raise SystemExit(f'error maximo demasiado alto: {maximum_error}')
-print(f'error maximo absoluto: {maximum_error:.3e}')
-PY
-); then
+if (cd "$TMP" && python3 test_gradient_check.py >"$LOGS/gradient-check.log" 2>&1); then
     pasar "$(cat "$LOGS/gradient-check.log")"
 else
     fallar "El gradient check no coincide"
@@ -588,10 +560,12 @@ if [[ -s "$TMP/accuracy.png" ]]; then
 fi
 
 cabecera "7 · BONUS EJECUTABLES"
-explicar "Ejecuta configuraciones bonus reales cuando el CLI las ofrece." \
-    "Buscar palabras en el codigo solo demuestra que se mencionan; ejecutar demuestra que funcionan."
+printf '  %bCobertura:%b Se ejecutan los bonus que tienen una ruta CLI o una propiedad matematica comprobable en esta suite: Adam, Dropout y la propagacion de su mascara. Otros bonus documentales (activaciones, inicializadores, mini-batches y metricas) quedan cubiertos por el entrenamiento, el esquema del modelo y el test de integracion; la defensa humana debe explicar sus decisiones.\n' "$CIRAN" "$RESET"
+explicar "Ejecuta Adam con datos reales, validacion y guardado de modelo e historial." \
+    "Un nombre en el codigo no prueba el bonus: esta ejecucion verifica que el CLI acepta el optimizador y completa un entrenamiento reproducible. Si falla, el bonus de Adam no debe darse por demostrado, aunque las pruebas mandatory sigan siendo validas."
 prueba "Optimizador Adam"
-guia_manual "python3 train.py --dataset data_training.csv --optimizer adam --epochs 2 --save adam.json" "El entrenamiento termina y crea adam.json."
+referencia "optimizers.py" "class Adam"
+guia_manual "python3 train.py --dataset data_training.csv --validation data_validation.csv --layers 8 8 --optimizer adam --epochs 2 --save adam.json --history adam-history.json" "El entrenamiento termina sin error y crea adam.json y adam-history.json."
 if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv \
     --layers 8 8 --epochs 2 --learning_rate 0.005 --batch_size 32 \
     --activation relu --weight_init he --optimizer adam --save adam.json \
@@ -602,11 +576,11 @@ else
     avisar "Adam no se pudo ejecutar; el bonus no afecta a las obligatorias"
 fi
 
-explicar "Comprueba que Dropout aplica la mascara y el escalado tambien al gradiente." \
-    "Un smoke test solo demuestra que entrena; esta prueba verifica el comportamiento matematico del bonus."
+explicar "Ejecuta Dropout con datos reales y despues comprueba su mascara durante backpropagation." \
+    "El smoke test demuestra que el CLI puede entrenar con Dropout; la prueba matematica siguiente verifica que las neuronas descartadas no reciben gradiente. Si falla, el bonus no es fiable aunque el entrenamiento termine."
 prueba "Dropout"
 referencia "network.py" "dropout_mask"
-guia_manual "python3 train.py --dataset data_training.csv --dropout 0.2 --epochs 2 --save dropout.json" "El entrenamiento termina y crea dropout.json."
+guia_manual "python3 train.py --dataset data_training.csv --validation data_validation.csv --layers 8 8 --dropout 0.2 --epochs 2 --save dropout.json --history dropout-history.json" "El entrenamiento termina sin error y crea dropout.json y dropout-history.json."
 if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv \
     --layers 8 8 --epochs 2 --learning_rate 0.01 --batch_size 32 \
     --activation relu --weight_init he --dropout 0.2 --save dropout.json \
@@ -618,27 +592,11 @@ else
 fi
 
 explicar "Comprueba con una red pequena que las neuronas descartadas no reciben gradiente." \
-    "La mascara de Dropout debe anular y escalar el gradiente de las capas ocultas durante backpropagation."
+    "La mascara de Dropout debe anular y escalar el gradiente de las capas ocultas durante backpropagation. Esta comprobacion cubre la propiedad matematica que un simple smoke test no puede demostrar."
 prueba "Gradiente de Dropout matematicamente correcto"
 referencia "network.py" "current_layer.dropout_mask"
-guia_manual "python3 test_dropout_gradient.py" "Las filas de gradiente correspondientes a mascaras cero son cero."
-if (cd "$TMP" && python3 - <<'PY' >"$LOGS/dropout-gradient.log" 2>&1
-from network import Network
-
-network = Network(loss='categorical_crossentropy', learning_rate=0.01)
-network.build([2, 3, 2], ['relu', 'softmax'], weight_init='he',
-              dropout_rate=0.5, seed=42)
-network.train_step([[1.0, 1.0]], [1])
-hidden = network.layers[0]
-mask = hidden.dropout_mask[0]
-for neuron_index, active in enumerate(mask):
-    if active == 0.0 and any(abs(value) > 1e-12 for value in hidden.dW[neuron_index]):
-        raise SystemExit("una neurona descartada conserva gradiente")
-if not any(active == 0.0 for active in mask):
-    raise SystemExit("la semilla no produjo ninguna neurona descartada")
-print("mascara y gradiente de Dropout verificados")
-PY
-); then
+guia_manual "python3 test_dropout_gradient.py" "Las filas de gradiente correspondientes a mascaras cero son cero y al menos una neurona ha sido descartada."
+if (cd "$TMP" && python3 test_dropout_gradient.py >"$LOGS/dropout-gradient.log" 2>&1); then
     BONUS_PASADOS=$((BONUS_PASADOS + 1))
     pasar "$(cat "$LOGS/dropout-gradient.log")"
 else

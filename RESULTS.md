@@ -1,5 +1,14 @@
 # 📊 Resultados del Entrenamiento - Multilayer Perceptron
 
+## 🧭 Navegación
+
+[README](./README.md) · [MATES](./MATES.md) ·
+[ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
+[EVALUATION](./EVALUATION.md) · [test_auto.md](./test_auto.md)
+
+Las métricas y pérdidas de este documento se explican matemáticamente en
+[MATES.md](./MATES.md).
+
 ## 🎯 Objetivo
 Clasificación binaria de cáncer de mama usando el dataset Wisconsin Breast Cancer Diagnostic.
 

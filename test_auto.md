@@ -1,5 +1,14 @@
 # 🧪 `test_auto.sh` — Guía de ejecución y limpieza
 
+## 🧭 Navegación
+
+[README](./README.md) · [MATES](./MATES.md) ·
+[ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
+[EVALUATION](./EVALUATION.md) · [RESULTS](./RESULTS.md)
+
+Los fundamentos matemáticos que justifican los checks están en
+[MATES.md](./MATES.md).
+
 ## Índice
 
 - [Propósito](#-propósito)
@@ -34,6 +43,8 @@ La suite comprueba:
 12. Curvas de loss y accuracy.
 13. Validación obligatoria, gradient check y restauración de early stopping.
 14. Smoke tests ejecutables y comprobación matemática de Adam y Dropout.
+15. Pruebas matemáticas reproducibles en [`test_gradient_check.py`](./test_gradient_check.py)
+    y [`test_dropout_gradient.py`](./test_dropout_gradient.py).
 
 Cada sección muestra qué hace, por qué importa, un comando manual equivalente,
 el resultado esperado y una referencia dinámica `archivo:línea`.
@@ -54,8 +65,35 @@ el mismo orden:
 ```
 
 La implementación se localiza dinámicamente durante la ejecución. Si una prueba
-no depende de una función concreta, se indica que no existe una referencia
-dinámica en lugar de reutilizar accidentalmente la referencia de otra prueba.
+no depende de una función concreta, se explica que se valida el contrato
+observable. Si el patrón no aparece, se informa del patrón buscado, de que la
+prueba sigue siendo ejecutable y de la consecuencia real: menor trazabilidad,
+que debe corregirse si cambia el código. Nunca se reutiliza accidentalmente la
+referencia de otra prueba.
+
+Los comandos que aparecen después de **Repetir manualmente** se imprimen en
+verde en la terminal para distinguirlos rápidamente del texto pedagógico. Son
+comandos reproducibles, no una descripción aproximada: por ejemplo, los
+gradient checks ahora viven en scripts versionados que la suite copia a su
+carpeta aislada y que también pueden ejecutarse directamente.
+
+## 🧭 Cobertura y significado del resultado
+
+| Bloque | Qué se ejecuta | Interpretación de un fallo |
+|---|---|---|
+| Entorno y estructura | Python, archivos esperados y sintaxis | No se puede considerar reproducible la entrega |
+| Restricciones y dataset | Imports AST, contrato de `data.csv` | Puede haber dependencia prohibida o datos incompatibles |
+| División e integración | Reproducibilidad, ratio inválido y `test_integration.py` | El flujo de datos o la integración no son confiables |
+| Matemática mandatory | Validación obligatoria, gradient check y BCE | No debe darse por demostrada la implementación matemática |
+| Modelo y predicción | Arquitectura, persistencia, CSV y probabilidades | La interfaz de entrenamiento/predicción está incompleta |
+| Visualización | Loss y accuracy en backend `Agg` | No se demuestra la entrega de las curvas exigidas |
+| Bonus | Adam, Dropout y gradiente de Dropout | El bonus concreto queda como no demostrado; no oculta fallos mandatory |
+
+La suite no afirma que todos los bonus estén demostrados solo porque aparecen
+en la documentación. Ejecuta los bonus con una ruta real y marca el resto como
+aspectos que deben explicarse y defenderse. Un resultado `20/20` significa que
+las comprobaciones implementadas han pasado; no equivale automáticamente a una
+calificación oficial.
 
 ## ▶️ Modos de ejecución
 
@@ -110,6 +148,8 @@ La carpeta `test_auto_artifacts/` puede contener:
 | `data_validation.csv` | Partición de validación |
 | `adam.json` | Resultado del smoke test de Adam |
 | `dropout.json` | Resultado del smoke test de Dropout |
+| `test_gradient_check.py` | Comparación de gradientes analíticos y numéricos |
+| `test_dropout_gradient.py` | Verificación matemática de la máscara de Dropout |
 
 Estos archivos son regenerables y están excluidos por `.gitignore`.
 

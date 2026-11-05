@@ -5,6 +5,15 @@
 > **Estado:** ✅ Mandatory implementado; bonus verificables durante la defensa
 > **Tiempo estimado evaluación:** 15-20 minutos
 
+## 🧭 Navegación
+
+[README](./README.md) · [MATES](./MATES.md) ·
+[ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
+[RESULTS](./RESULTS.md) · [test_auto.md](./test_auto.md)
+
+Para preparar la explicación matemática de la defensa, consulta
+[MATES.md](./MATES.md).
+
 ---
 
 ## 🚀 Inicio Rápido (Para Evaluadores)
@@ -22,7 +31,7 @@ ls -la
 - ✅ `predict.py` - Script de predicción
 - ✅ `data.csv` - Dataset original (569 muestras)
 - ✅ Módulos core: `network.py`, `layers.py`, `activation.py`, `loss.py`, `metrics.py`
-- ✅ Documentación: `README.md`, `ARCHITECTURE.md`, `RESULTS.md`, `COMPLIANCE.md`
+- ✅ Documentación: `README.md`, `MATES.md`, `ARCHITECTURE.md`, `RESULTS.md`, `COMPLIANCE.md`
 
 ### 2️⃣ Ejecutar test de integración
 
@@ -530,6 +539,7 @@ multilayer-perceptron/
 ├── 📖 DOCUMENTACIÓN
 │   ├── README.md                   # Guía de uso completa
 │   ├── ARCHITECTURE.md             # Diseño técnico del sistema
+│   ├── MATES.md                    # Fundamentos matemáticos
 │   ├── RESULTS.md                  # Resultados detallados
 │   ├── COMPLIANCE.md               # Checklist completo del subject
 │   └── EVALUATION.md               # Este archivo (guía evaluación)

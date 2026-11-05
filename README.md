@@ -12,6 +12,7 @@
 - [Instalación](#-instalación)
 - [Uso](#-uso)
 - [Conceptos clave](#-conceptos-clave)
+- [Matemáticas detalladas](#-matemáticas-detalladas)
 - [Visualización y testing](#-visualización)
 - [Guía detallada de test_auto.sh](#-guía-detallada-de-test_autosh)
 - [Estructura](#-estructura-real-del-proyecto)
@@ -87,6 +88,12 @@ Este proyecto implementa un **Multilayer Perceptron (Perceptrón Multicapa)** de
 </td>
 </tr>
 </table>
+
+## 🧮 Matemáticas detalladas
+
+La explicación completa de feedforward, activaciones, normalización, pérdidas,
+backpropagation, optimizadores, Dropout, early stopping y métricas está en
+[MATES.md](./MATES.md).
 
 ## 📊 Dataset
 
@@ -376,7 +383,7 @@ La suite automática es más amplia que los tests individuales y genera sus
 resultados aislados en `test_auto_artifacts/`. Su documentación detallada está
 en [test_auto.md](./test_auto.md).
 
-`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, exige validación durante el entrenamiento, realiza un gradient check numérico, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo, verifica la restauración de early stopping y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
+`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, exige validación durante el entrenamiento, realiza un gradient check numérico, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo, verifica la restauración de early stopping y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa, muestra el comando manual en verde y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio. Los checks matemáticos también están disponibles como `test_gradient_check.py` y `test_dropout_gradient.py` para reproducirlos sin depender de un bloque interno del shell.
 
 La suite está diseñada para ofrecer una señal reproducible y trazable, no para prometer ausencia absoluta de bugs: la defensa, las pruebas exploratorias y la revisión del código siguen siendo necesarias.
 
@@ -453,6 +460,7 @@ Los archivos se crean en el directorio actual. `make visualize` también los gen
 multilayer-perceptron/
 ├── README.md                    # Este archivo
 ├── ARCHITECTURE.md              # Diseño técnico
+├── MATES.md                     # Fundamentos matemáticos
 ├── COMPLIANCE.md                # Requisitos y cumplimiento
 ├── EVALUATION.md                # Guía de evaluación
 ├── RESULTS.md                   # Resultados medidos
@@ -467,6 +475,8 @@ multilayer-perceptron/
 ├── explore_dataset.py           # Exploración del dataset
 ├── visualize.py                 # Curvas y gráficos
 ├── test_integration.py          # Test de integración
+├── test_gradient_check.py       # Verificación numérica de backpropagation
+├── test_dropout_gradient.py     # Verificación matemática de Dropout
 ├── test_auto.sh                 # Suite automática completa
 ├── test_auto.md                 # Guía de la suite automática
 ├── network.py                   # Red neuronal
@@ -508,6 +518,7 @@ Durante la defensa, deberás explicar:
 ## 📖 Documentación relacionada
 
 - [Arquitectura](./ARCHITECTURE.md)
+- [Matemáticas del proyecto](./MATES.md)
 - [Cumplimiento del subject](./COMPLIANCE.md)
 - [Guía de evaluación](./EVALUATION.md)
 - [Resultados detallados](./RESULTS.md)
