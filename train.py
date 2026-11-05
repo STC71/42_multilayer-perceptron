@@ -295,19 +295,14 @@ def main():
     
     print(f"   ✓ x_train shape: ({len(X_train)}, {len(X_train[0])})")
     
-    # Cargar datos de validación
-    try:
-        X_valid, y_valid, _ = load_and_preprocess(
-            args.validation,
-            preprocessor=preprocessor,
-            fit=False
-        )
-        print(f"   ✓ x_valid shape: ({len(X_valid)}, {len(X_valid[0])})")
-        has_validation = True
-    except:
-        print(f"   ⚠️  No se pudo cargar validación, continuando solo con train")
-        X_valid, y_valid = None, None
-        has_validation = False
+    # Cargar datos de validación. Es obligatorio para el flujo del subject.
+    X_valid, y_valid, _ = load_and_preprocess(
+        args.validation,
+        preprocessor=preprocessor,
+        fit=False
+    )
+    print(f"   ✓ x_valid shape: ({len(X_valid)}, {len(X_valid[0])})")
+    has_validation = True
     
     print()
     
@@ -355,6 +350,8 @@ def main():
     
     best_val_loss = float('inf')
     patience_counter = 0
+    best_model_state = None
+    best_epoch = 0
     
     for epoch in range(1, args.epochs + 1):
         # Entrenar una época
@@ -383,6 +380,11 @@ def main():
                 if val_loss < best_val_loss:
                     best_val_loss = val_loss
                     patience_counter = 0
+                    best_epoch = epoch
+                    best_model_state = [
+                        (layer.weights.copy(), layer.bias.copy())
+                        for layer in network.layers
+                    ]
                 else:
                     patience_counter += 1
                     
@@ -400,7 +402,13 @@ def main():
                   f"loss: {train_loss:.4f} - acc: {train_acc:.4f}")
     
     print()
-    
+
+    if best_model_state is not None:
+        for layer, (weights, bias) in zip(network.layers, best_model_state):
+            layer.weights = [row.copy() for row in weights]
+            layer.bias = bias.copy()
+        print(f"   ✓ Restaurados pesos de la mejor época ({best_epoch})")
+
     # ========================================================================
     # 4. GUARDAR MODELO
     # ========================================================================
@@ -425,7 +433,7 @@ def main():
         'config': {
             'learning_rate': args.learning_rate,
             'batch_size': args.batch_size,
-            'epochs_trained': epoch,
+            'epochs_trained': best_epoch or epoch,
             'loss_function': network.loss_name
         }
     }
@@ -437,6 +445,7 @@ def main():
         print(f"   ✅ Modelo guardado en '{args.save}'")
     except Exception as e:
         print(f"   ❌ Error al guardar modelo: {e}", file=sys.stderr)
+        sys.exit(1)
     
     # Guardar historial
     try:
@@ -444,7 +453,8 @@ def main():
             json.dump(network.history, f, indent=2)
         print(f"   ✅ Historial guardado en '{args.history}'")
     except Exception as e:
-        print(f"   ⚠️  No se pudo guardar historial: {e}", file=sys.stderr)
+        print(f"   ❌ No se pudo guardar historial: {e}", file=sys.stderr)
+        sys.exit(1)
     
     print()
     
@@ -459,10 +469,8 @@ def main():
     
     print("📊 Resultados finales:")
     if has_validation:
-        final_train_loss = network.history['loss'][-1]
-        final_val_loss = network.history['val_loss'][-1]
-        final_train_acc = network.history['accuracy'][-1]
-        final_val_acc = network.history['val_accuracy'][-1]
+        final_train_loss, final_train_acc = network.evaluate(X_train, y_train)
+        final_val_loss, final_val_acc = network.evaluate(X_valid, y_valid)
         
         print(f"   Train Loss:      {final_train_loss:.6f}")
         print(f"   Train Accuracy:  {final_train_acc:.4f} ({final_train_acc*100:.2f}%)")

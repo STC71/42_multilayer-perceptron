@@ -2,7 +2,7 @@
 
 > **Proyecto:** multilayer-perceptron  
 > **Autor:** sternero  
-> **Estado:** ✅ COMPLETO (Mandatory + Bonus)  
+> **Estado:** ✅ Mandatory implementado; bonus verificables durante la defensa
 > **Tiempo estimado evaluación:** 15-20 minutos
 
 ---
@@ -243,7 +243,7 @@ make visualize
 ```bash
 # Probar configuración custom
 python3 train.py --dataset data_training.csv \
-                 --layers 30 32 16 8 2 \
+                 --layers 32 16 8 \
                  --epochs 50 \
                  --learning_rate 0.03 \
                  --batch_size 8 \
@@ -800,7 +800,7 @@ from math import log, exp, tanh as math_tanh
 3. **Early Stopping efectivo:** Convergencia en 19/150 épocas
 4. **Código limpio:** Modular, documentado, testeado
 5. **Documentación completa:** 5 archivos MD explicativos
-6. **Tests passing:** 6/6 tests de integración
+6. **Tests passing:** `test_auto.sh` verifica 20 comprobaciones, incluidas comprobaciones matemáticas
 7. **Reproducible:** Seed fijo, documentación detallada
 
 ---
@@ -808,22 +808,20 @@ from math import log, exp, tanh as math_tanh
 ## ⚠️ Limitaciones Conocidas
 
 1. **4 Falsos Negativos:** Recall 92.16% (margen de mejora con dropout/regularización)
-2. **No implementado Adam:** Solo Gradient Descent (suficiente para mandatory)
-3. **No implementado Dropout:** Regularización solo con early stopping
-
-**Justificación:** El subject mandatory solo requiere backpropagation + gradient descent. Adam y Dropout son bonus adicionales no implementados.
+2. **El resultado depende de la partición y de los hiperparámetros:** la cifra documentada es una ejecución reproducible, no una garantía universal.
+3. **Los bonus deben defenderse:** Adam, Dropout, early stopping y las métricas adicionales se verifican con ejecuciones y no sustituyen la comprensión del mandatory.
 
 ---
 
 ## 🎯 Veredicto Esperado
 
-**Mandatory:** ✅ 100% Completo (7/7 requisitos)  
-**Bonus:** ✅ 75% Completo (6/8 features)  
+**Mandatory:** ✅ Implementado y verificable
+**Bonus:** ✅ Implementado y verificable; la puntuación depende de la defensa
 **Performance:** ✅ 96.49% accuracy (excelente)  
 **Code Quality:** ✅ Limpio, modular, testeado  
 **Documentation:** ✅ Completa y detallada  
 
-**Calificación sugerida:** 125/125 (100 mandatory + 25 bonus)
+**Calificación:** debe determinarla la evaluación humana; la documentación no sustituye la defensa ni garantiza una puntuación.
 
 ---
 

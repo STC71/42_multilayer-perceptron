@@ -117,7 +117,7 @@ split:
 train: split
 	@echo "$(CYAN)🧠 Entrenando modelo (configuración óptima)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
-		--layers 30 24 24 2 \
+		--layers 24 24 \
 		--epochs 150 \
 		--learning_rate 0.05 \
 		--batch_size 16 \
@@ -130,7 +130,7 @@ train: split
 train-fast: split
 	@echo "$(CYAN)⚡ Entrenamiento rápido (20 épocas)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
-		--layers 30 24 24 2 \
+		--layers 24 24 \
 		--epochs 20 \
 		--learning_rate 0.05 \
 		--batch_size 16 \
@@ -141,7 +141,7 @@ train-fast: split
 train-adam: split
 	@echo "$(CYAN)🚀 Entrenamiento con Adam optimizer (BONUS)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
-		--layers 30 24 24 2 \
+		--layers 24 24 \
 		--epochs 150 \
 		--learning_rate 0.005 \
 		--batch_size 16 \
@@ -155,7 +155,7 @@ train-adam: split
 train-adam-dropout: split
 	@echo "$(CYAN)🎲 Entrenamiento con Adam + Dropout (BONUS)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
-		--layers 30 24 24 2 \
+		--layers 24 24 \
 		--epochs 150 \
 		--learning_rate 0.005 \
 		--batch_size 16 \
@@ -213,7 +213,7 @@ test: split
 test-train: split
 	@echo "$(CYAN)🧪 Test rápido de entrenamiento (5 épocas)...$(RESET)"
 	@$(PYTHON) train.py --dataset $(TRAIN_DATA) \
-		--layers 30 16 16 2 \
+		--layers 16 16 \
 		--epochs 5 \
 		--learning_rate 0.05 \
 		--batch_size 16 \

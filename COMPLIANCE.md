@@ -2,7 +2,7 @@
 
 > **Versión del Subject:** 5.1  
 > **Fecha de implementación:** $(date +%Y-%m-%d)  
-> **Estado:** ✅ COMPLETO (Mandatory + Bonus)
+> **Estado:** ✅ Mandatory implementado; bonus verificados por ejecución
 
 ---
 
@@ -79,9 +79,9 @@ epoch 02/150 - loss: 0.3050 - val_loss: 0.2841 - acc: 0.9319 - val_acc: 0.9211
 
 **Requisito:** Guardar los pesos del modelo entrenado en un archivo para uso posterior.
 
-- [x] Formato implementado: NumPy `.npy` (binario, eficiente)
+- [x] Formato implementado: JSON legible y portable
 - [x] Guarda: weights, biases, architecture, activations, preprocessing params
-- [x] Archivo generado: `model_weights.npy`
+- [x] Archivo generado por defecto: `model_weights.npy` (contenido JSON; se recomienda renombrarlo a `.json` en futuras revisiones)
 - [x] Historial: `training_history.json` (para curvas)
 
 **Verificación:**
@@ -150,7 +150,7 @@ def binary_crossentropy(y_true, y_pred, epsilon=1e-15):
 **Curvas generadas:**
 - **Loss:** Descenso desde 0.497 hasta 0.020 (mejora 95.99%)
 - **Accuracy:** Crecimiento desde 90.55% hasta 99.78%
-- **Validación:** Estable en ~96.49% (sin overfitting)
+- **Validación:** ~96.49% en la ejecución documentada; las curvas deben inspeccionarse para valorar overfitting
 
 **Comando:**
 ```bash
@@ -172,7 +172,7 @@ $ make visualize
 - Guarda mejor modelo automáticamente
 - Detiene entrenamiento si no hay mejora
 
-**Resultado:** Paró en época 19/150 automáticamente.
+**Resultado:** Detiene el entrenamiento cuando no mejora `val_loss` y restaura los pesos de la mejor época antes de guardar el modelo.
 
 ---
 
@@ -233,7 +233,7 @@ Todas con derivadas correctamente implementadas.
 
 ```bash
 # Ejemplo: red más profunda
-python3 train.py --layers 30 32 24 16 2 --activation relu
+python3 train.py --dataset data_training.csv --layers 32 24 16 --activation relu
 ```
 
 - [x] Número de capas configurable
@@ -470,9 +470,9 @@ E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
 
 | Categoría | Estado | Completitud |
 |-----------|--------|-------------|
-| **Mandatory Requirements** | ✅ COMPLETO | 7/7 (100%) |
-| **Bonus Features** | ✅ COMPLETO | 8/8 (100%) |
-| **Code Quality** | ✅ EXCELENTE | Tests passing |
+| **Mandatory Requirements** | ✅ IMPLEMENTADO | Verificado con suite automática y defensa |
+| **Bonus Features** | ✅ IMPLEMENTADOS | Verificados individualmente; sujetos a defensa |
+| **Code Quality** | ✅ ALTA | Código modular y comprobaciones reproducibles |
 | **Documentation** | ✅ COMPLETA | README + ARCHITECTURE + RESULTS |
 | **Performance** | ✅ EXCELENTE | 96.49% accuracy |
 
@@ -534,9 +534,9 @@ python3 test_integration.py
 
 ---
 
-**Estado:** ✅ **PROYECTO COMPLETADO Y VALIDADO**
+**Estado:** ✅ **PROYECTO IMPLEMENTADO Y VALIDADO**
 
-**Cumplimiento:** 100% Mandatory + 75% Bonus
+**Cumplimiento:** Mandatory verificado; bonus ejecutables verificados individualmente
 
 **Rendimiento:** 96.49% validation accuracy (excelente para MLP desde cero)
 

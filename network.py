@@ -284,8 +284,14 @@ class Network:
                 activation_grad = current_layer.activation_deriv(current_layer.z)
             else:
                 activation_grad = current_layer.activation_deriv(current_layer.output)
-            
+
             delta = [dp * ag for dp, ag in zip(delta_propagated, activation_grad)]
+            if current_layer.dropout_mask is not None:
+                scale = 1.0 / (1.0 - current_layer.dropout_rate)
+                delta = [
+                    value * mask * scale
+                    for value, mask in zip(delta, current_layer.dropout_mask)
+                ]
             current_layer.delta = delta
         
         # PASO 3: Calcular gradientes para pesos y bias
@@ -385,8 +391,15 @@ class Network:
                     activation_grad = current_layer.activation_deriv(z_sample)
                 else:
                     activation_grad = current_layer.activation_deriv(output_sample)
-                
+
                 delta = [dp * ag for dp, ag in zip(delta_propagated, activation_grad)]
+                if current_layer.dropout_mask is not None:
+                    scale = 1.0 / (1.0 - current_layer.dropout_rate)
+                    dropout_mask = current_layer.dropout_mask[sample_idx]
+                    delta = [
+                        value * mask * scale
+                        for value, mask in zip(delta, dropout_mask)
+                    ]
                 batch_deltas[l].append(delta)
         
         # PASO 3: Promediar gradientes sobre el batch

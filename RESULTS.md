@@ -230,7 +230,7 @@ python3 train.py --optimizer sgd --learning_rate 0.01 --activation relu --weight
 make train
 # o manualmente:
 python3 train.py --dataset data_training.csv \
-                 --layers 30 24 24 2 \
+                 --layers 24 24 \
                  --epochs 150 \
                  --learning_rate 0.05 \
                  --batch_size 16 \

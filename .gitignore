@@ -20,11 +20,7 @@ ENV/
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Project specific - Archivos generados
+# Project generated data and models
 data_training.csv
 data_validation.csv
 model_weights.npy
@@ -32,20 +28,18 @@ model_weights.npy
 training_history.json
 history.json
 metrics.json
+*.json
 
-# Archivos de salida
-
-# Visualizaciones generadas
+# Generated visualizations
 loss_curve.png
 accuracy_curve.png
 learning_curves.png
 *.png
 
-# Logs y resultados de tests
+# Test logs and artifacts
 *.log
 test_results.txt
 test_auto_artifacts/
 
-# PDF del subject (opcional, según preferencia)
-subject_multilayer-perceptron.pdf
+# Local copies of subject documents
 *.pdf

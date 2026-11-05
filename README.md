@@ -163,7 +163,7 @@ python3 split_dataset.py data.csv
 ```bash
 # Configuración óptima (ReLU + learning rate 0.05)
 python3 train.py --dataset data_training.csv \
-                 --layers 30 24 24 2 \
+                 --layers 24 24 \
                  --epochs 150 \
                  --learning_rate 0.05 \
                  --batch_size 16 \
@@ -376,7 +376,7 @@ La suite automática es más amplia que los tests individuales y genera sus
 resultados aislados en `test_auto_artifacts/`. Su documentación detallada está
 en [test_auto.md](./test_auto.md).
 
-`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, realiza un entrenamiento corto, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
+`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, exige validación durante el entrenamiento, realiza un gradient check numérico, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo, verifica la restauración de early stopping y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio.
 
 La suite está diseñada para ofrecer una señal reproducible y trazable, no para prometer ausencia absoluta de bugs: la defensa, las pruebas exploratorias y la revisión del código siguen siendo necesarias.
 

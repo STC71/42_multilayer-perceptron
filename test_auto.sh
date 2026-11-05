@@ -372,6 +372,81 @@ ejecutar "Test de integracion existente" bash -c "
     python3 test_integration.py
 "
 
+obligatoria
+prueba "La validacion es obligatoria durante el entrenamiento"
+explicar "Intenta entrenar sin un archivo de validacion existente y exige un error." \
+    "Evita que una ejecucion incompleta se presente como un entrenamiento valido del subject."
+referencia "train.py" "Cargar datos de validación"
+guia_manual "python3 train.py --dataset data_training.csv --validation no-existe.csv --epochs 1" "El proceso termina con un codigo distinto de 0."
+if (cd "$TMP" && python3 train.py --dataset train-a.csv \
+    --validation no-existe.csv --layers 4 4 --epochs 1 \
+    >/dev/null 2>"$LOGS/validacion-obligatoria.log"); then
+    fallar "El entrenamiento acepto una validacion inexistente"
+else
+    pasar "El entrenamiento rechaza una validacion inexistente"
+fi
+
+obligatoria
+prueba "Gradientes verificados numericamente"
+explicar "Compara los gradientes de backpropagation con diferencias finitas en una red pequena." \
+    "Una red puede entrenar y aun tener derivadas incorrectas; esta prueba valida la matematica central."
+referencia "network.py" "def _backward_batch"
+guia_manual "python3 test_gradient_check.py" "El error maximo absoluto de los gradientes es menor que 1e-5."
+if (cd "$TMP" && python3 - <<'PY' >"$LOGS/gradient-check.log" 2>&1
+from network import Network
+
+network = Network(loss='categorical_crossentropy', learning_rate=0.01)
+network.build([2, 3, 2], ['tanh', 'softmax'], weight_init='xavier', seed=7)
+inputs = [[0.2, -0.4]]
+targets = [1]
+predictions = network.forward(inputs)
+network.backward(targets, predictions)
+errors = []
+epsilon = 1e-6
+
+for layer in network.layers:
+    for row_index in range(layer.n_out):
+        for column_index in range(layer.n_in):
+            original = layer.weights[row_index][column_index]
+            layer.weights[row_index][column_index] = original + epsilon
+            loss_plus = network.compute_loss(targets, network.forward(inputs))
+            layer.weights[row_index][column_index] = original - epsilon
+            loss_minus = network.compute_loss(targets, network.forward(inputs))
+            layer.weights[row_index][column_index] = original
+            numerical = (loss_plus - loss_minus) / (2 * epsilon)
+            errors.append(abs(numerical - layer.dW[row_index][column_index]))
+
+maximum_error = max(errors)
+if maximum_error >= 1e-5:
+    raise SystemExit(f'error maximo demasiado alto: {maximum_error}')
+print(f'error maximo absoluto: {maximum_error:.3e}')
+PY
+); then
+    pasar "$(cat "$LOGS/gradient-check.log")"
+else
+    fallar "El gradient check no coincide"
+    cat "$LOGS/gradient-check.log"
+fi
+
+obligatoria
+prueba "Early stopping conserva el mejor estado"
+explicar "Entrena con paciencia reducida y verifica que se restaura la mejor epoca antes de guardar." \
+    "El modelo final debe corresponder al mejor resultado de validacion, no a la ultima epoca ejecutada."
+referencia "train.py" "best_model_state"
+guia_manual "python3 train.py --dataset data_training.csv --validation data_validation.csv --early_stopping --patience 1" "La salida indica que se restauran los pesos de la mejor epoca y se crea el modelo."
+if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv \
+    --layers 8 8 --epochs 20 --learning_rate 0.05 --batch_size 16 \
+    --activation relu --weight_init he --early_stopping --patience 1 \
+    --save early-stop.json --history early-stop-history.json --seed 42 \
+    >"$LOGS/early-stopping.log" 2>&1 &&
+    grep -q "Restaurados pesos de la mejor" "$LOGS/early-stopping.log" &&
+    test -s early-stop.json); then
+    pasar "Se restauran los pesos de la mejor epoca"
+else
+    fallar "No se pudo demostrar la restauracion del mejor estado"
+    sed -n '1,35p' "$LOGS/early-stopping.log"
+fi
+
 cabecera "4 · ENTRENAMIENTO Y MODELO"
 obligatoria
 prueba "Entrenamiento corto con modelo e historial"
@@ -527,7 +602,10 @@ else
     avisar "Adam no se pudo ejecutar; el bonus no afecta a las obligatorias"
 fi
 
+explicar "Comprueba que Dropout aplica la mascara y el escalado tambien al gradiente." \
+    "Un smoke test solo demuestra que entrena; esta prueba verifica el comportamiento matematico del bonus."
 prueba "Dropout"
+referencia "network.py" "dropout_mask"
 guia_manual "python3 train.py --dataset data_training.csv --dropout 0.2 --epochs 2 --save dropout.json" "El entrenamiento termina y crea dropout.json."
 if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv \
     --layers 8 8 --epochs 2 --learning_rate 0.01 --batch_size 32 \
@@ -537,6 +615,35 @@ if (cd "$TMP" && python3 train.py --dataset train-a.csv --validation valid-a.csv
     pasar "Dropout ejecutado correctamente"
 else
     avisar "Dropout no se pudo ejecutar; el bonus no afecta a las obligatorias"
+fi
+
+explicar "Comprueba con una red pequena que las neuronas descartadas no reciben gradiente." \
+    "La mascara de Dropout debe anular y escalar el gradiente de las capas ocultas durante backpropagation."
+prueba "Gradiente de Dropout matematicamente correcto"
+referencia "network.py" "current_layer.dropout_mask"
+guia_manual "python3 test_dropout_gradient.py" "Las filas de gradiente correspondientes a mascaras cero son cero."
+if (cd "$TMP" && python3 - <<'PY' >"$LOGS/dropout-gradient.log" 2>&1
+from network import Network
+
+network = Network(loss='categorical_crossentropy', learning_rate=0.01)
+network.build([2, 3, 2], ['relu', 'softmax'], weight_init='he',
+              dropout_rate=0.5, seed=42)
+network.train_step([[1.0, 1.0]], [1])
+hidden = network.layers[0]
+mask = hidden.dropout_mask[0]
+for neuron_index, active in enumerate(mask):
+    if active == 0.0 and any(abs(value) > 1e-12 for value in hidden.dW[neuron_index]):
+        raise SystemExit("una neurona descartada conserva gradiente")
+if not any(active == 0.0 for active in mask):
+    raise SystemExit("la semilla no produjo ninguna neurona descartada")
+print("mascara y gradiente de Dropout verificados")
+PY
+); then
+    BONUS_PASADOS=$((BONUS_PASADOS + 1))
+    pasar "$(cat "$LOGS/dropout-gradient.log")"
+else
+    avisar "El gradiente de Dropout no supera la comprobacion matematica"
+    cat "$LOGS/dropout-gradient.log"
 fi
 
 cabecera "INFORME FINAL"

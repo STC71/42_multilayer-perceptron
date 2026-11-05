@@ -32,7 +32,8 @@ La suite comprueba:
 10. Binary Cross-Entropy con un valor conocido.
 11. Predicciones y probabilidades normalizadas.
 12. Curvas de loss y accuracy.
-13. Smoke tests ejecutables de Adam y Dropout.
+13. Validación obligatoria, gradient check y restauración de early stopping.
+14. Smoke tests ejecutables y comprobación matemática de Adam y Dropout.
 
 Cada sección muestra qué hace, por qué importa, un comando manual equivalente,
 el resultado esperado y una referencia dinámica `archivo:línea`.
