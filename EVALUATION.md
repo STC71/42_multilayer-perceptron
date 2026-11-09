@@ -204,6 +204,7 @@ make visualize
 **Verificar:**
 - [x] Se genera `loss_curve.png` (Figura IV.1 del subject)
 - [x] Se genera `accuracy_curve.png` (Figura IV.2 del subject)
+- [x] `test_auto.sh` genera y explica `learning_curves.png` como bonus combinado
 - [x] Curvas muestran training y validation
 - [x] Loss desciende, Accuracy asciende
 

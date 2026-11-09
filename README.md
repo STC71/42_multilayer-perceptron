@@ -383,11 +383,38 @@ La suite automática es más amplia que los tests individuales y genera sus
 resultados aislados en `test_auto_artifacts/`. Su documentación detallada está
 en [test_auto.md](./test_auto.md).
 
-`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad y el rechazo de entradas inválidas en la división 80/20, exige validación durante el entrenamiento, realiza un gradient check numérico, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy, comprueba predicciones y probabilidades, genera las curvas con un backend no interactivo, verifica la restauración de early stopping y ejecuta smoke tests reales de Adam y Dropout. Cada acción explica qué hace, por qué importa, muestra el comando manual en verde y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio. Los checks matemáticos también están disponibles como `test_gradient_check.py` y `test_dropout_gradient.py` para reproducirlos sin depender de un bloque interno del shell.
+`test_auto.sh` ejecuta la validación en `test_auto_artifacts/`, una carpeta ignorada por Git, comprueba los requisitos obligatorios, verifica la reproducibilidad, disjunción y cobertura completa de la división 80/20, exige validación durante el entrenamiento, realiza un gradient check numérico de pesos y biases, inspecciona el esquema del modelo, valida matemáticamente la Binary Cross-Entropy y la BCE emitida por la predicción, comprueba predicciones, métricas e historial, genera las curvas con un backend no interactivo, verifica la restauración de early stopping y ejecuta smoke tests reales de Adam y Dropout. Después imprime una guía de defensa con analogías cotidianas, ecuaciones, referencias de código y preguntas sobre bias, feedforward, derivadas, backpropagation, gradient descent, normalización, softmax, categorical cross-entropy frente a BCE, accuracy, precision, recall, F1, Adam, arquitectura, hiperparámetros, overfitting y train/validation. Cada acción explica qué hace, por qué importa, muestra el comando manual en verde y localiza dinámicamente su implementación como `archivo:línea`. Los bonus se informan por separado y no pueden ocultar un fallo obligatorio. Los checks matemáticos también están disponibles como `test_gradient_check.py` y `test_dropout_gradient.py` para reproducirlos sin depender de un bloque interno del shell.
+
+Las líneas de implementación se buscan en tiempo de ejecución mediante
+`referencia()`, no se almacenan como números fijos. Si un símbolo cambia de
+nombre, la suite lo comunica como referencia no localizada; el texto
+pedagógico sigue siendo válido, pero la trazabilidad debe actualizarse.
+
+### Activaciones y respuesta para la defensa
+
+Conviene distinguir tres cosas:
+
+- `config.py` declara `sigmoid` como activación oculta por defecto;
+- los entrenamientos principales de `test_auto.sh` seleccionan `relu` con
+  `--activation relu`;
+- la salida utiliza `softmax`.
+
+Por tanto, si preguntan qué activación se utilizó, la respuesta correcta es:
+“el valor por defecto es sigmoid, pero en esta ejecución concreta usamos relu
+en las capas ocultas; la salida es softmax”. La suite comprueba esta diferencia
+en ejecución y no depende de una línea fija.
 
 La suite está diseñada para ofrecer una señal reproducible y trazable, no para prometer ausencia absoluta de bugs: la defensa, las pruebas exploratorias y la revisión del código siguen siendo necesarias.
 
 La suite crea `test_auto_artifacts/` en el directorio del proyecto. Esta carpeta está ignorada por Git y contiene los artefactos de la ejecución. Los gráficos se intentan abrir inmediatamente después de generarse mediante el visor predeterminado del sistema; en un servidor sin interfaz gráfica se informa de la ruta para abrirlos manualmente.
+
+Durante `test_auto.sh` se explican los tres gráficos que la suite puede
+generar. `loss.png` y `accuracy.png` son las figuras mandatory del subject:
+la primera muestra el error por época y la segunda la proporción de aciertos.
+En ambas, azul representa training y rojo validation. Si training mejora
+pero validation empeora, es una señal de overfitting. `learning_curves.png`
+es el bonus combinado: coloca loss y accuracy en paneles separados para
+compararlas sin mezclar sus escalas.
 
 ```bash
 ./test_auto.sh

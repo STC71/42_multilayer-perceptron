@@ -6,8 +6,8 @@ from network import Network
 
 network = Network(loss="categorical_crossentropy", learning_rate=0.01)
 network.build([2, 3, 2], ["tanh", "softmax"], weight_init="xavier", seed=7)
-inputs = [[0.2, -0.4]]
-targets = [1]
+inputs = [[0.2, -0.4], [-0.3, 0.6]]
+targets = [1, 0]
 predictions = network.forward(inputs)
 network.backward(targets, predictions)
 errors = []
@@ -24,6 +24,15 @@ for layer in network.layers:
             layer.weights[row_index][column_index] = original
             numerical = (loss_plus - loss_minus) / (2 * epsilon)
             errors.append(abs(numerical - layer.dW[row_index][column_index]))
+    for row_index in range(layer.n_out):
+        original = layer.bias[row_index]
+        layer.bias[row_index] = original + epsilon
+        loss_plus = network.compute_loss(targets, network.forward(inputs))
+        layer.bias[row_index] = original - epsilon
+        loss_minus = network.compute_loss(targets, network.forward(inputs))
+        layer.bias[row_index] = original
+        numerical = (loss_plus - loss_minus) / (2 * epsilon)
+        errors.append(abs(numerical - layer.db[row_index]))
 
 maximum_error = max(errors)
 if maximum_error >= 1e-5:
