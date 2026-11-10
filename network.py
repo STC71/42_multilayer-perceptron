@@ -617,12 +617,35 @@ class Network:
         print(f"Función de pérdida: {self.loss_name}")
         print(f"Learning rate: {self.learning_rate}")
         print(f"Optimizer: {self.optimizer.name}")  # BONUS
+        print()
+        print("📖 Cómo leer esta configuración:")
+        print("   Entrada/Salida : número de neuronas al entrar y salir de cada capa.")
+        print("   Activación     : función que transforma la salida de la capa.")
+        print("   Parámetros     : pesos y bias que la red ajusta durante el aprendizaje.")
+        print("   sigmoid        : transforma cada valor en un número entre 0 y 1.")
+        print("                    Se usa aquí en las capas ocultas.")
+        print("   softmax        : transforma las salidas en probabilidades cuya suma es 1.")
+        print("                    Se usa en la capa final para elegir entre las clases.")
+        print()
+        print("   Función de pérdida:")
+        print("      categorical_crossentropy mide la diferencia entre las")
+        print("      probabilidades predichas y la clase correcta. Menor es mejor.")
+        print("   Learning rate:")
+        print("      tamaño de cada ajuste que se hace a los pesos. Un valor")
+        print("      demasiado alto puede ser inestable; uno demasiado bajo aprende")
+        print("      muy lentamente.")
+        print("   Optimizer:")
+        print("      algoritmo que utiliza los gradientes para actualizar los pesos.")
+        print("      SGD (descenso de gradiente estocástico) realiza esos ajustes")
+        print("      siguiendo la dirección que reduce la pérdida.")
         
         # Mostrar dropout si está habilitado
         has_dropout = any(layer.dropout_rate > 0 for layer in self.layers[:-1])
         if has_dropout:
             dropout_rates = [layer.dropout_rate for layer in self.layers[:-1] if layer.dropout_rate > 0]
             print(f"Dropout: {dropout_rates[0]:.2f} (capas ocultas)")  # BONUS
+            print("   Dropout desactiva aleatoriamente algunas neuronas durante")
+            print("   el entrenamiento para ayudar a evitar overfitting.")
         
         print()
         print("=" * 80)

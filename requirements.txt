@@ -1,11 +1,38 @@
 # Multilayer Perceptron - Requirements
 # Dependencias mínimas necesarias para el proyecto
 
+# Las dependencias son "las cosas" que se necesitan para que el proyecto funcione
+# correctamente. Estas son las librerías y herramientas que el proyecto requiere 
+# para ejecutarse sin problemas.
+# Las dependencias se instalan utilizando un gestor de paquetes como pip.
+# Un gestor de paquetes es una herramienta que facilita la instalación, actualización 
+# y gestión de librerías y dependencias en un proyecto. Algo así como un "asistente" 
+# que se encarga de descargar e instalar las librerías necesarias para que el proyecto 
+# funcione correctamente.
+# Para instalar las dependencias, se puede usar el siguiente comando en la terminal:
+# pip install -r requirements.txt
+
 # Álgebra lineal y arrays (permitido por el subject)
 numpy>=1.20.0
+# numpy es una librería de Python que proporciona soporte para trabajar con arrays 
+# y matrices multidimensionales, así como funciones matemáticas avanzadas para 
+# realizar operaciones sobre estos arrays. Es ampliamente utilizada en el campo 
+# de la ciencia de datos, aprendizaje automático y computación científica.
+# El >= significa que se requiere al menos la versión 1.20.0 de numpy, pero se permite 
+# cualquier versión posterior compatible.
 
 # Visualización (permitido para curvas de aprendizaje)
 matplotlib>=3.3.0
+# matplotlib es una librería de Python utilizada para crear gráficos y visualizaciones
+# de datos. Permite generar gráficos estáticos, animados e interactivos en una variedad
+# de formatos. Es ampliamente utilizada en el análisis de datos, aprendizaje automático
+# y otras áreas donde la visualización de información es importante.
 
 # Análisis de datos (opcional, útil para exploración)
 pandas>=1.2.0
+# pandas es una librería de Python que proporciona estructuras de datos y herramientas de análisis
+# de datos de alto rendimiento y fáciles de usar. Es algo así como una "caja de herramientas" 
+# para trabajar con datos tabulares, como hojas de cálculo o bases de datos. Ofrece también 
+# funcionalidades para manipular, limpiar, transformar y analizar datos de manera eficiente.
+# Es ampliamente utilizada en el campo de la ciencia de datos y el aprendizaje automático.
+

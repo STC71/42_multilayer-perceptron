@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""Compara gradientes analiticos con diferencias finitas en una red pequena."""
+"""Compara gradientes analíticos con diferencias finitas en una red pequeña.
+
+El gradiente analítico lo calcula backpropagation. El gradiente numérico
+aproxima la misma derivada modificando ligeramente cada peso y bias.
+"""
 
 from network import Network
 
@@ -35,6 +39,28 @@ for layer in network.layers:
         errors.append(abs(numerical - layer.db[row_index]))
 
 maximum_error = max(errors)
-if maximum_error >= 1e-5:
+tolerance = 1e-5
+print("🔬 Comprobación de gradientes")
+print("   La red calcula cómo debe cambiar cada peso mediante")
+print("   backpropagation. Comprobamos esos cálculos con una")
+print("   aproximación numérica: modificamos ligeramente cada peso")
+print("   y observamos cómo cambia la pérdida.")
+print()
+print(f"   Error máximo absoluto: {maximum_error:.3e}")
+print("   Es la mayor diferencia encontrada entre ambos métodos,")
+print("   sin tener en cuenta si la diferencia es positiva o negativa.")
+print(f"   En decimal: {maximum_error:.13f}")
+print(f"   Límite permitido: {tolerance:.5f}")
+
+if maximum_error >= tolerance:
+    print()
+    print("❌ El error es demasiado alto.")
+    print("   Los dos métodos no coinciden suficientemente. Puede haber")
+    print("   un error en backpropagation, en una derivada o en el")
+    print("   cálculo numérico.")
     raise SystemExit(f"error maximo demasiado alto: {maximum_error}")
-print(f"error maximo absoluto: {maximum_error:.3e}")
+
+print()
+print("✅ El error es mucho menor que el límite permitido.")
+print("   Los dos métodos coinciden y backpropagation")
+print("   parece funcionar correctamente.")

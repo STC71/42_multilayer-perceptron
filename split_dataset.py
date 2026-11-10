@@ -60,7 +60,7 @@ def split_dataset(data, train_ratio=0.8, seed=42):
     
     Args:
         data: Lista de líneas del dataset
-        train_ratio: Proporción de datos para entrenamiento (0.0 - 1.0)
+        train_ratio: Proporción de datos para entrenamiento (0.0, 1.0)
         seed: Semilla para reproducibilidad
         
     Returns:
@@ -147,7 +147,7 @@ def main():
     
     # Validar train_ratio
     if not 0.0 < args.train_ratio < 1.0:
-        print("❌ Error: train_ratio debe estar entre 0.0 y 1.0", file=sys.stderr)
+        print("❌ Error: train_ratio debe ser estrictamente mayor que 0.0 y menor que 1.0", file=sys.stderr)
         sys.exit(1)
     
     print("=" * 60)

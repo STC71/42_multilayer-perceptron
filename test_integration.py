@@ -81,7 +81,8 @@ def test_network_creation():
     
     from network import Network
     
-    # Crear red: 30 → 16 → 16 → 2
+    # Esta red es mas pequena que la arquitectura principal (30 -> 24 -> 24 -> 2)
+    # para que el test de integracion sea rapido.
     network = Network(loss='categorical_crossentropy', learning_rate=0.1)
     network.build(
         architecture=[30, 16, 16, 2],
@@ -92,6 +93,8 @@ def test_network_creation():
     
     print(f"   ✓ Red creada: {network}")
     print(f"   ✓ Parámetros: {network.get_parameters_count()}")
+    print("   ℹ️  Arquitectura de prueba: 30 entradas -> 16 -> 16 -> 2 salidas")
+    print("      La configuración principal del proyecto utiliza 30 -> 24 -> 24 -> 2.")
     
     return network
 
@@ -120,8 +123,23 @@ def test_training(network):
     print(f"   Train: {len(X_train)} muestras")
     print(f"   Valid: {len(X_valid)} muestras")
     print()
+    print("   📖 ¿Qué es una época?")
+    print("      Una época es una pasada completa por todas las muestras de")
+    print("      entrenamiento. En cada época la red ajusta sus pesos y después")
+    print("      se evalúa con los datos de entrenamiento y de validación.")
+    print()
+    print("   📖 Significado de las métricas")
+    print("      loss     : error medio sobre el conjunto de entrenamiento.")
+    print("      val_loss : error medio sobre el conjunto de validación.")
+    print("      acc      : proporción de predicciones correctas en entrenamiento.")
+    print("      val_acc  : proporción de predicciones correctas en validación.")
+    print("      Menor loss/val_loss es mejor; mayor acc/val_acc es mejor.")
+    print("      La validación usa datos que no ajustan los pesos y ayuda a detectar")
+    print("      overfitting: aprender demasiado bien los datos de entrenamiento.")
+    print()
     
     # Entrenar 5 épocas de prueba
+    history = []
     for epoch in range(1, 6):
         # Train
         train_loss, train_acc = network.evaluate(X_train, y_train)
@@ -134,6 +152,7 @@ def test_training(network):
         # Evaluar después de actualizar
         train_loss, train_acc = network.evaluate(X_train, y_train)
         val_loss, val_acc = network.evaluate(X_valid, y_valid)
+        history.append((train_loss, val_loss, train_acc, val_acc))
         
         print(f"   epoch {epoch:02d}/05 - "
               f"loss: {train_loss:.4f} - val_loss: {val_loss:.4f} - "
@@ -141,6 +160,18 @@ def test_training(network):
     
     print()
     print("   ✅ Entrenamiento de prueba completado")
+    first_loss, first_val_loss, first_acc, first_val_acc = history[0]
+    last_loss, last_val_loss, last_acc, last_val_acc = history[-1]
+    print("   📊 Lectura de estos resultados (época 1 -> época 5):")
+    print(f"      loss     : {first_loss:.4f} -> {last_loss:.4f}")
+    print(f"      val_loss : {first_val_loss:.4f} -> {last_val_loss:.4f}")
+    print(f"      acc      : {first_acc:.4f} -> {last_acc:.4f}")
+    print(f"      val_acc  : {first_val_acc:.4f} -> {last_val_acc:.4f}")
+    print("      La pérdida baja: la red mejora ligeramente la confianza de sus")
+    print("      predicciones. La accuracy puede quedarse igual porque esa métrica")
+    print("      solo cambia cuando cambia la clase finalmente elegida.")
+    print("      Con solo 5 épocas y esta configuración simplificada, esto no indica")
+    print("      por sí solo un error ni permite juzgar el rendimiento definitivo.")
     
     return True
 
@@ -223,6 +254,18 @@ def test_metrics():
     print(f"   Recall:    {rec:.4f}")
     print(f"   F1-Score:  {f1:.4f}")
     print()
+    print("   📖 ¿Qué mide cada métrica?")
+    print("      Accuracy  : porcentaje de aciertos totales.")
+    print("      Precision : de los positivos predichos, cuántos eran correctos.")
+    print("      Recall    : de los positivos reales, cuántos fueron encontrados.")
+    print("      F1-Score  : equilibrio entre precision y recall.")
+    print()
+    print("   ℹ️  Este caso usa etiquetas reales [1, 0, 1, 1, 0, 0, 1, 0].")
+    print("      Las clases predichas también son [1, 0, 1, 1, 0, 0, 1, 0].")
+    print("      Como las 8 predicciones son correctas, todas las métricas valen 1.0.")
+    print("      Esto comprueba las fórmulas, pero no significa que el modelo real")
+    print("      tenga rendimiento perfecto. Para eso hay que evaluarlo con datos")
+    print("      reales de validación o test.")
     print("   ✅ Métricas calculadas correctamente")
     
     return True
