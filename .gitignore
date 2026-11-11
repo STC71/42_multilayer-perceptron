@@ -40,6 +40,7 @@ learning_curves.png
 *.log
 test_results.txt
 test_auto_artifacts/
+test_eval_artifacts/
 
 # Local copies of subject documents
 *.pdf

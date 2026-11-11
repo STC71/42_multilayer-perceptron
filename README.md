@@ -271,6 +271,26 @@ python3 predict.py --model model_weights.npy --dataset data_validation.csv
 make predict
 ```
 
+### 🏁 7. Reproducir la evaluación
+
+```bash
+# Guía alineada con en.eval.pdf/es.eval.pdf
+make test-eval
+
+# Checks matemáticos independientes
+make test-gradient
+make test-dropout-gradient
+```
+
+`make test-eval` comprueba el repositorio, el entrenamiento, la predicción,
+la BCE, los bonus y el rendimiento con el protocolo de `evaluation.py`. La
+guía pausa entre secciones para facilitar la defensa; usa
+`./test_eval.sh --no-pause` para ejecutarla de principio a fin.
+
+No confundas los datasets: `data_validation.csv` pertenece al flujo interno
+de entrenamiento y monitorización; `data_test.csv` lo genera el protocolo de
+rendimiento y se reserva para la medición final.
+
 ### ⚡ Atajo del flujo normal completo
 
 Para limpiar los resultados anteriores y repetir todos los pasos principales:
@@ -373,6 +393,9 @@ make test-train
 
 # 4. Suite completa: estructura, datos, entrenamiento, predicción y gráficos
 make test-auto
+
+# 5. Guía de evaluación y defensa
+make test-eval
 ```
 
 `make test` divide el dataset y ejecuta `test_integration.py`. `make test-train`
@@ -550,6 +573,7 @@ Durante la defensa, deberás explicar:
 - [Guía de evaluación](./EVALUATION.md)
 - [Resultados detallados](./RESULTS.md)
 - [Guía completa de test_auto.sh](./test_auto.md)
+- [Guía ejecutable de evaluación](./test_eval.sh)
 
 ## 🏆 Autor
 

@@ -11,6 +11,10 @@
 [ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
 [RESULTS](./RESULTS.md) · [test_auto.md](./test_auto.md)
 
+Para una evaluación guiada alineada con `en.eval.pdf` y `es.eval.pdf`, usa
+[`test_eval.sh`](./test_eval.sh). Para la suite exhaustiva automatizada, usa
+[`test_auto.sh`](./test_auto.sh).
+
 Para preparar la explicación matemática de la defensa, consulta
 [MATES.md](./MATES.md).
 
@@ -153,9 +157,31 @@ Matriz de Confusión:
 
 **Tiempo:** < 1 segundo
 
+#### 5. Rendimiento oficial y diferencia con validation
+
+El flujo interno usa `data_validation.csv` para observar el entrenamiento.
+El protocolo de rendimiento usa `evaluation.py`, que crea `data_test.csv`,
+entrena con `data_training.csv` y calcula la Binary Cross-Entropy sobre datos
+no usados para actualizar los pesos.
+
+```bash
+make test-eval
+# o, sin pausas entre secciones:
+./test_eval.sh --no-pause
+```
+
+La guía fija la semilla de la división dentro de su arnés para que el resultado
+pueda repetirse; esto no modifica `evaluation.py` ni sustituye la evaluación
+humana. Para revisar la matemática de backpropagation directamente:
+
+```bash
+make test-gradient
+make test-dropout-gradient
+```
+
 ---
 
-#### 5. Binary Cross-Entropy (CRÍTICO)
+#### 6. Binary Cross-Entropy (CRÍTICO)
 
 **Fórmula del subject (página 10):**
 ```

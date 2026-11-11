@@ -67,6 +67,9 @@ info:
 	@echo "  $(YELLOW)2. make test$(RESET)        - Ejecuta el test de integración"
 	@echo "  $(YELLOW)3. make test-train$(RESET)  - Ejecuta un entrenamiento corto"
 	@echo "  $(YELLOW)4. make test-auto$(RESET)   - Ejecuta la suite completa"
+	@echo "  $(YELLOW)5. make test-eval$(RESET)   - Guía la evaluación oficial"
+	@echo "  $(YELLOW)6. make test-gradient$(RESET) - Comprueba backpropagation con diferencias finitas"
+	@echo "  $(YELLOW)7. make test-dropout-gradient$(RESET) - Comprueba el gradiente de Dropout"
 	@echo ""
 	@echo "$(BLUE)▶ LIMPIEZA Y RECONSTRUCCIÓN$(RESET)"
 	@echo "  $(YELLOW)make clean$(RESET)          - Elimina resultados regenerables"
@@ -223,6 +226,20 @@ test-train: split
 test-auto:
 	@./test_auto.sh
 
+.PHONY: test-eval
+test-eval:
+	@./test_eval.sh
+
+.PHONY: test-gradient
+test-gradient:
+	@echo "$(CYAN)🧮 Comprobando gradientes de backpropagation...$(RESET)"
+	@$(PYTHON) test_gradient_check.py
+
+.PHONY: test-dropout-gradient
+test-dropout-gradient:
+	@echo "$(CYAN)🧮 Comprobando gradiente de Dropout...$(RESET)"
+	@$(PYTHON) test_dropout_gradient.py
+
 # ============================================================================
 # Limpieza
 # ============================================================================
@@ -230,10 +247,11 @@ test-auto:
 .PHONY: clean
 clean:
 	@echo "$(YELLOW)🧹 Limpiando archivos generados...$(RESET)"
-	@rm -f $(TRAIN_DATA) $(VALID_DATA)
+	@rm -f $(TRAIN_DATA) $(VALID_DATA) data_test.csv
 	@rm -f training_history.json history.json metrics.json
 	@rm -f *.png
 	@rm -rf test_auto_artifacts
+	@rm -rf test_eval_artifacts
 	@rm -rf __pycache__
 	@find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
 	@find . -type f -name "*.pyc" -delete 2>/dev/null || true
@@ -257,9 +275,11 @@ re: fclean train visualize predict
 .PHONY: check
 check:
 	@echo "$(CYAN)🔍 Verificando código...$(RESET)"
-	@$(PYTHON) -m py_compile *.py 2>/dev/null && \
-	echo "$(GREEN)✅ Sintaxis correcta en todos los archivos$(RESET)" || \
-	echo "$(RED)❌ Errores de sintaxis detectados$(RESET)"
+	@$(PYTHON) -m py_compile *.py 2>/dev/null || { \
+		echo "$(RED)❌ Errores de sintaxis detectados$(RESET)"; \
+		exit 1; \
+	}
+	@echo "$(GREEN)✅ Sintaxis correcta en todos los archivos$(RESET)"
 
 .PHONY: help
 help: info

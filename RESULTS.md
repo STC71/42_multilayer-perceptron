@@ -6,6 +6,9 @@
 [ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
 [EVALUATION](./EVALUATION.md) · [test_auto.md](./test_auto.md)
 
+Para reproducir las evidencias desde cero, ejecuta [`test_eval.sh`](./test_eval.sh)
+o la suite exhaustiva [`test_auto.sh`](./test_auto.sh).
+
 Las métricas y pérdidas de este documento se explican matemáticamente en
 [MATES.md](./MATES.md).
 

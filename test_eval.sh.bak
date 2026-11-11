@@ -1,0 +1,518 @@
+#!/usr/bin/env bash
+
+# test_eval.sh - Guía ejecutable para la evaluación del subject Multilayer
+# Perceptron. No sustituye la defensa: prepara evidencias reproducibles y deja
+# las preguntas oficiales visibles para que evaluador y estudiante las
+# discutan con el código abierto delante.
+
+set -u
+set -o pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+ARTIFACTS="$ROOT/test_eval_artifacts"
+LOG="$ARTIFACTS/evaluation.log"
+INTERACTIVE=1
+RUN_AUTO=0
+RUN_OFFICIAL=1
+KEEP=1
+PAUSE=1
+
+GREEN='\033[0;32m'
+RED='\033[0;31m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+RESET='\033[0m'
+
+if [[ ! -t 0 || ! -t 1 ]]; then
+    INTERACTIVE=0
+fi
+
+usage() {
+    cat <<'EOF'
+Uso: ./test_eval.sh [opciones]
+
+  --full-auto       Ejecuta también ./test_auto.sh --non-interactive --no-graphs.
+  --skip-official   No ejecuta el flujo oficial evaluation.py de rendimiento.
+  --non-interactive No hace preguntas ni pausas.
+  --no-pause        No espera INTRO entre bloques.
+  --clean           Borra únicamente test_eval_artifacts al terminar.
+  -h, --help        Muestra esta ayuda.
+
+El script trabaja en test_eval_artifacts/ y no modifica código, data.csv ni
+los resultados generados en la raíz del proyecto.
+EOF
+}
+
+for arg in "$@"; do
+    case "$arg" in
+        --full-auto) RUN_AUTO=1 ;;
+        --skip-official) RUN_OFFICIAL=0 ;;
+        --non-interactive) INTERACTIVE=0; PAUSE=0 ;;
+        --no-pause) PAUSE=0 ;;
+        --clean) KEEP=0 ;;
+        -h|--help) usage; exit 0 ;;
+        *) printf '%bArgumento desconocido:%b %s\n' "$RED" "$RESET" "$arg" >&2; exit 2 ;;
+    esac
+done
+
+rm -rf "$ARTIFACTS"
+mkdir -p "$ARTIFACTS"
+: > "$LOG"
+
+TOTAL=0
+PASSED=0
+FAILED=0
+
+section() {
+    local title="$1"
+    if [[ "$INTERACTIVE" -eq 1 && "$PAUSE" -eq 1 && "$TOTAL" -gt 0 ]]; then
+        printf '\n%bPulsa INTRO para continuar...%b' "$YELLOW" "$RESET"
+        read -r
+    fi
+    printf '\n%b================================================================%b\n' "$CYAN" "$RESET"
+    printf '%b%s%b\n' "$CYAN" "$title" "$RESET"
+    printf '%b================================================================%b\n' "$CYAN" "$RESET"
+}
+
+check() {
+    local title="$1"
+    shift
+    TOTAL=$((TOTAL + 1))
+    if "$@" >>"$LOG" 2>&1; then
+        PASSED=$((PASSED + 1))
+        printf '%b[OK]%b %s\n' "$GREEN" "$RESET" "$title"
+    else
+        FAILED=$((FAILED + 1))
+        printf '%b[FAIL]%b %s\n' "$RED" "$RESET" "$title"
+        tail -n 12 "$LOG"
+    fi
+}
+
+show_reference() {
+    local file="$1"
+    local pattern="$2"
+    local line
+    line="$(grep -nE -- "$pattern" "$ROOT/$file" 2>/dev/null | head -1 | cut -d: -f1)"
+    if [[ -n "$line" ]]; then
+        printf '  %bReferencia dinámica:%b %s:%s\n' "$GREEN" "$RESET" "$file" "$line"
+    else
+        printf '  %bReferencia no localizada:%b %s / %s\n' "$RED" "$RESET" "$file" "$pattern"
+    fi
+}
+
+explain() {
+    printf '  Qué se comprueba: %s\n' "$1"
+    printf '  Por qué: %s\n' "$2"
+    show_reference "$3" "$4"
+    printf '  %bPregunta oficial:%b %s\n' "$BLUE" "$RESET" "$5"
+    printf '  %bComando para comprobarlo:%b\n    %s\n' "$GREEN" "$RESET" "$6"
+}
+
+concept() {
+    printf '  %bConcepto:%b %s\n' "$CYAN" "$RESET" "$1"
+}
+
+copy_sources() {
+    cp "$ROOT"/*.py "$ROOT/data.csv" "$ARTIFACTS/"
+}
+
+section "1 · REVISIÓN DEL REPOSITORIO Y MODULARIDAD"
+printf 'Proyecto: %s\n' "$ROOT"
+printf 'Criterios fuente: en.eval.pdf y es.eval.pdf (Implementation, Training, Prediction y Algorithms understanding).\n'
+printf 'Este guion es una ayuda de evaluación; las decisiones de nota siguen siendo humanas.\n'
+concept "Un entrypoint es un script que se puede ejecutar directamente para realizar una tarea completa del proyecto. Aquí: split_dataset.py prepara los datos, train.py entrena, predict.py predice y visualize.py genera curvas."
+concept "CLI significa Command-Line Interface: las opciones escritas después del nombre del script forman el contrato que permite repetir un experimento sin editar el código. Ejemplo: python3 train.py --dataset data_training.csv --layers 24 24."
+concept "Una red modular separa responsabilidades entre módulos (capas, activaciones, pérdida, optimizadores, entrenamiento y predicción) y construye la topología a partir de datos, en lugar de fijarla dentro de una única función."
+
+explain "Que existan los entrypoints y módulos del proyecto." \
+    "La evaluación debe valorar el repositorio real y completo, no un alias o una salida precalculada." \
+    "train.py" "def main" \
+    "¿La red es modular y se puede cambiar el número de capas?" \
+    "find . -maxdepth 1 -type f -printf '%f\n' | sort"
+check "Archivos y documentación principales presentes" bash -c "
+    cd '$ROOT' &&
+    test -f data.csv && test -f train.py && test -f predict.py &&
+    test -f network.py && test -f layers.py && test -f activation.py &&
+    test -f loss.py && test -f metrics.py && test -f split_dataset.py &&
+    test -f en.eval.pdf && test -f es.eval.pdf
+"
+check "Entrypoints exponen un CLI reproducible" bash -c "
+    cd '$ROOT' &&
+    train_help=\$(python3 train.py --help) &&
+    predict_help=\$(python3 predict.py --help) &&
+    grep -q -- '--layers' <<< \"\$train_help\" &&
+    grep -q -- '--dataset' <<< \"\$train_help\" &&
+    grep -q -- '--model' <<< \"\$predict_help\" &&
+    grep -q -- '--output' <<< \"\$predict_help\"
+"
+
+explain "Que la arquitectura por defecto tenga dos capas ocultas y que el CLI permita cambiarla." \
+    "Es un mandatory explícito de la rúbrica y evita confundir la topología con los pesos." \
+    "config.py" "DEFAULT_LAYERS" \
+    "¿Hay al menos dos capas ocultas por defecto y se pueden cambiar por argumentos?" \
+    "grep -nE 'DEFAULT_LAYERS|--layers|architecture = ' config.py train.py"
+printf '  Implementación: config.py define la topología completa; train.py expone las capas ocultas con --layers y construye Input + hidden + Output.\n'
+printf '  Arquitectura por defecto: 30 entradas → 24 neuronas ocultas → 24 neuronas ocultas → 2 salidas. Las dos capas ocultas dan capacidad para aprender relaciones no lineales sin convertir el modelo en una arquitectura innecesariamente grande.\n'
+printf '  Cambio por CLI: --layers 32 16 8 significa tres capas ocultas; train.py añade automáticamente la entrada y las dos salidas. Cambiar la topología permite comparar capacidad, coste y generalización.\n'
+show_reference "train.py" "'--layers'"
+show_reference "train.py" "architecture = \[n_features\]"
+check "Dos capas ocultas por defecto y arquitectura configurable" python3 - "$ROOT" <<'PY'
+import ast
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+config = ast.parse((root / "config.py").read_text())
+layers = next(
+    node.value for node in ast.walk(config)
+    if isinstance(node, ast.Assign)
+    and any(isinstance(target, ast.Name) and target.id == "DEFAULT_LAYERS"
+            for target in node.targets)
+)
+if not isinstance(layers, ast.List) or len(layers.elts) < 4:
+    raise SystemExit("DEFAULT_LAYERS necesita entrada, >=2 ocultas y salida")
+config_hidden = [ast.literal_eval(element) for element in layers.elts[1:-1]]
+train_tree = ast.parse((root / "train.py").read_text())
+layers_argument = None
+for node in ast.walk(train_tree):
+    if not isinstance(node, ast.Call) or not isinstance(node.func, ast.Attribute):
+        continue
+    if node.func.attr != "add_argument" or not node.args:
+        continue
+    if any(isinstance(argument, ast.Constant) and argument.value == "--layers"
+           for argument in node.args):
+        default = next((keyword.value for keyword in node.keywords
+                        if keyword.arg == "default"), None)
+        if not isinstance(default, ast.List):
+            raise SystemExit("train.py no declara un default de lista para --layers")
+        layers_argument = [ast.literal_eval(element) for element in default.elts]
+        break
+if layers_argument is None:
+    raise SystemExit("train.py no expone --layers")
+if len(layers_argument) < 2:
+    raise SystemExit("--layers necesita al menos dos capas ocultas por defecto")
+if config_hidden != layers_argument:
+    raise SystemExit(
+        f"defaults divergentes: config.py={config_hidden}, train.py={layers_argument}"
+    )
+train = (root / "train.py").read_text()
+if "architecture = [n_features] + args.layers + [n_classes]" not in train:
+    raise SystemExit("train.py no construye la arquitectura con args.layers")
+print(
+    f"config.py DEFAULT_LAYERS={config_hidden}; "
+    f"train.py --layers default={layers_argument}; arquitectura configurable"
+)
+PY
+
+check "Sintaxis Python válida" bash -c "cd '$ROOT' && python3 -m py_compile ./*.py"
+
+section "2 · DATASET Y DIVISIÓN TRAIN/VALIDATION"
+concept "Train contiene los ejemplos usados para actualizar pesos; validation contiene ejemplos separados que miden generalización durante el entrenamiento. Disjuntos significa que ninguna muestra aparece en ambos conjuntos."
+explain "Que todas las muestras se dividan sin solapamiento en train y validation." \
+    "Validation representa ejemplos desconocidos y no debe contaminar el entrenamiento." \
+    "split_dataset.py" "def split_dataset" \
+    "¿Se divide el dataset en dos conjuntos y se usa validation para medir rendimiento?" \
+    "python3 split_dataset.py data.csv && wc -l data_training.csv data_validation.csv"
+copy_sources
+check "División reproducible, disjunta y completa" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 split_dataset.py data.csv --output_train data_training.csv --output_valid data_validation.csv &&
+    test \"\$(wc -l < data_training.csv)\" -eq 455 &&
+    test \"\$(wc -l < data_validation.csv)\" -eq 114 &&
+    python3 - <<'PY'
+import csv
+def ids(path):
+    with open(path, newline='') as stream:
+        return {row[0] for row in csv.reader(stream)}
+train, valid, all_rows = ids('data_training.csv'), ids('data_validation.csv'), ids('data.csv')
+assert not train & valid
+assert train | valid == all_rows
+print('455 train + 114 validation; sin solapamiento y union completa')
+PY
+"
+
+section "3 · ENTRENAMIENTO, SOFTMAX Y GUARDADO"
+concept "Entrenar repite forward, cálculo de pérdida y actualización de parámetros durante varias épocas. El historial permite comparar train con validation y detectar aprendizaje insuficiente u overfitting."
+concept "Softmax convierte las salidas en probabilidades que suman 1; guardar arquitectura, pesos e historial permite reproducir la predicción y justificar el resultado."
+explain "Que la salida use softmax y que el entrenamiento muestre métricas de train y validation." \
+    "Softmax produce una distribución de probabilidades; las métricas por época permiten observar aprendizaje y overfitting." \
+    "network.py" "softmax" \
+    "¿Se muestran métricas y curvas de entrenamiento, incluyendo validation?" \
+    "python3 train.py --help; MPLBACKEND=Agg python3 visualize.py --history history.json"
+check "Softmax en la salida de la red" python3 - "$ROOT" <<'PY'
+import ast
+import pathlib
+import sys
+root = pathlib.Path(sys.argv[1])
+config = (root / "config.py").read_text()
+train = (root / "train.py").read_text()
+if "DEFAULT_OUTPUT_ACTIVATION = 'softmax'" not in config:
+    raise SystemExit("config.py no declara softmax como salida por defecto")
+if "DEFAULT_OUTPUT_ACTIVATION" not in train:
+    raise SystemExit("train.py no conecta la activación de salida")
+ast.parse((root / "activation.py").read_text())
+print("salida configurada como softmax")
+PY
+
+check "Entrenamiento reproducible y guardado de topología/pesos" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 train.py --dataset data_training.csv --validation data_validation.csv \
+      --layers 24 24 --epochs 30 --learning_rate 0.05 --batch_size 16 \
+      --activation relu --weight_init he --early_stopping --patience 8 \
+      --save model.json --history history.json --seed 42 --verbose > train.log &&
+    test -s model.json && test -s history.json &&
+    grep -qi 'epoch' train.log
+"
+show_reference "train.py" "history\["
+
+check "Historial contiene train y validation" python3 - "$ARTIFACTS/history.json" <<'PY'
+import json
+import sys
+history = json.load(open(sys.argv[1]))
+required = {"loss", "val_loss", "accuracy", "val_accuracy"}
+missing = required - history.keys()
+if missing or not all(len(history[key]) > 0 for key in required):
+    raise SystemExit(f"historial incompleto: {sorted(missing)}")
+if len({len(history[key]) for key in required}) != 1:
+    raise SystemExit("las series del historial no tienen la misma longitud")
+print("loss, val_loss, accuracy y val_accuracy presentes")
+PY
+
+show_reference "visualize.py" "def main"
+check "Curvas loss y accuracy generadas sin interfaz gráfica" bash -c "
+    cd '$ARTIFACTS' &&
+    MPLBACKEND=Agg python3 visualize.py --history history.json \
+      --loss_output loss_curve.png --accuracy_output accuracy_curve.png \
+      --combined &&
+    test -s loss_curve.png && test -s accuracy_curve.png
+"
+
+section "4 · PREDICCIÓN, BCE Y RENDIMIENTO"
+concept "Prediction es una fase separada: carga un modelo ya entrenado y no modifica sus pesos. BCE mide el error de la probabilidad de la clase positiva; no debe confundirse con la categorical cross-entropy usada internamente durante este entrenamiento."
+concept "Validation sirve para monitorizar y ajustar decisiones durante el desarrollo; el conjunto test del flujo oficial sirve para medir el rendimiento final sobre datos no usados para entrenar."
+explain "Que prediction cargue el modelo, evalúe el conjunto desconocido y emita Binary Cross-Entropy." \
+    "La rúbrica exige cargar topología y pesos, y usar BCE para la clasificación binaria." \
+    "predict.py" "Binary Cross-Entropy" \
+    "¿El modelo se carga desde disco y cuál es su BCE sobre el test/validation?" \
+    "python3 predict.py --dataset data_validation.csv --model model_weights.npy"
+check "Predicción sobre validation con CSV de salida" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 predict.py --dataset data_validation.csv --model model.json \
+      --output predictions.csv > predict.log &&
+    test \"\$(wc -l < predictions.csv)\" -eq 115 &&
+    grep -q 'Binary Cross-Entropy' predict.log
+"
+
+check "Probabilidades finitas y normalizadas" python3 - "$ARTIFACTS/predictions.csv" <<'PY'
+import csv
+import math
+import sys
+rows = list(csv.DictReader(open(sys.argv[1], newline="")))
+for row in rows:
+    values = [float(row["probability_benign"]), float(row["probability_malignant"])]
+    if any(not math.isfinite(value) or not 0 <= value <= 1 for value in values):
+        raise SystemExit("probabilidad fuera de [0, 1]")
+    if abs(sum(values) - 1) > 1e-5:
+        raise SystemExit("probabilidades no normalizadas")
+print(f"{len(rows)} predicciones con probabilidades válidas")
+PY
+
+check "BCE reproducible y clasificación binaria" python3 - "$ARTIFACTS/predictions.csv" "$ARTIFACTS/predict.log" <<'PY'
+import csv
+import math
+import re
+import sys
+rows = list(csv.DictReader(open(sys.argv[1], newline="")))
+loss = 0.0
+for row in rows:
+    target = row["true_label"] == "M"
+    probability = float(row["probability_malignant"])
+    probability = min(max(probability, 1e-15), 1 - 1e-15)
+    loss -= math.log(probability if target else 1 - probability)
+loss /= len(rows)
+print(f"Binary Cross-Entropy calculada: {loss:.6f}")
+if not math.isfinite(loss) or loss < 0:
+    raise SystemExit("BCE inválida")
+log = open(sys.argv[2]).read()
+match = re.search(r"Binary Cross-Entropy:\s*([0-9.eE+-]+)", log)
+if match is None:
+    raise SystemExit("predict.py no imprimió la BCE")
+reported = float(match.group(1))
+if abs(loss - reported) > 1e-6:
+    raise SystemExit(f"BCE divergente: calculada={loss:.6f}, reportada={reported:.6f}")
+print(f"BCE de predict.py coincide: {reported:.6f}")
+PY
+
+section "5 · COMPRENSIÓN DE ALGORITMOS Y DEFENSA ORAL"
+concept "La defensa conecta tres niveles: qué hace el algoritmo, qué fórmula lo describe y qué función del repositorio lo implementa. La analogía solo ayuda a recordar la intuición; la evidencia debe estar en el código y en el resultado."
+printf '%bEsta sección sigue exactamente el orden de Algorithms understanding de en.eval.pdf.%b\n' "$CYAN" "$RESET"
+printf '%bEl estudiante debe responder primero; las líneas “respuesta esperada” sirven como guía de preparación, no como texto para memorizar.%b\n' "$YELLOW" "$RESET"
+
+oral_topic() {
+    local number="$1"
+    local title="$2"
+    local question="$3"
+    local example="$4"
+    local core="$5"
+    local formula="$6"
+    local reference_file="$7"
+    local reference_pattern="$8"
+    local command="$9"
+    local score="${10}"
+    printf '\n%b────────────────────────────────────────────────────────────────%b\n' "$CYAN" "$RESET"
+    printf '%b%s · %s [0-5]%b\n' "$CYAN" "$number" "$title" "$RESET"
+    printf '  %bPregunta del evaluador:%b %s\n' "$YELLOW" "$RESET" "$question"
+    printf '  %bEjemplo cotidiano:%b %s\n' "$GREEN" "$RESET" "$example"
+    printf '  %bRespuesta que debería poder explicar:%b %s\n' "$GREEN" "$RESET" "$core"
+    printf '  %bFórmula o idea clave:%b %s\n' "$GREEN" "$RESET" "$formula"
+    show_reference "$reference_file" "$reference_pattern"
+    printf '  %bComando para localizarlo o repetirlo:%b\n    %s\n' "$GREEN" "$RESET" "$command"
+    printf '  %bEvidencia a enseñar:%b %s\n' "$YELLOW" "$RESET" "$score"
+}
+
+oral_topic "1" "Feedforward" \
+    "Explica cómo funciona el algoritmo feedforward." \
+    "Una receta: cada paso transforma los ingredientes y entrega el resultado al paso siguiente." \
+    "Las features entran en la primera capa; cada neurona calcula una suma ponderada más bias, aplica su activación y pasa el resultado a la siguiente capa. La última capa usa softmax y entrega las probabilidades de benigno y maligno." \
+    "z = W·a + b; a = activación(z); softmax(z)_i = e^(z_i) / Σe^(z_j)" \
+    "network.py" "def forward" \
+    "grep -nE 'def forward|z =|softmax' network.py activation.py" \
+    "Debe señalar entrada, capas ocultas, activaciones, bias y salida probabilística."
+
+oral_topic "2" "Gradient descent" \
+    "Explica el algoritmo gradient descent." \
+    "Bajar una montaña con niebla: se toca el suelo alrededor, se elige la dirección de mayor bajada y se da un paso cuyo tamaño decide el learning rate." \
+    "La loss mide el error. El gradiente indica cómo cambiar cada parámetro para reducirlo y se actualizan pesos y bias en dirección opuesta al gradiente. Un learning rate demasiado grande puede saltarse el mínimo; uno demasiado pequeño tarda mucho." \
+    "θ_nuevo = θ_actual − η·∇L(θ)" \
+    "optimizers.py" "def update" \
+    "grep -nE 'def update_parameters|learning_rate|grad' network.py optimizers.py" \
+    "Debe explicar gradiente, learning rate, pesos/biases y el signo negativo."
+
+oral_topic "3" "Backpropagation" \
+    "Explica el algoritmo backpropagation." \
+    "Como revisar una cadena de montaje: si el producto final sale mal, se sigue el error hacia atrás para descubrir cuánto contribuyó cada estación." \
+    "Tras el forward se calcula la loss. Backpropagation aplica la regla de la cadena desde la salida hacia la entrada: calcula deltas, obtiene gradientes de pesos y bias y permite que gradient descent actualice cada capa." \
+    "∂L/∂W = δ·a_anterior^T; δ_anterior = (W^T·δ) ⊙ activación'(z)" \
+    "network.py" "def backward" \
+    "grep -nE 'def backward|delta|gradients' network.py" \
+    "Debe distinguir forward (predice) de backward (calcula responsabilidades del error)."
+
+oral_topic "4" "Overfitting" \
+    "Explica qué es una situación de overfitting." \
+    "Memorizar las respuestas de los ejercicios de clase: se obtiene una nota perfecta en esos ejercicios, pero se falla un examen nuevo." \
+    "Hay overfitting cuando train mejora mientras validation empeora o queda claramente peor: el modelo aprende ruido o ejemplos concretos en lugar de generalizar. Se observa comparando loss y accuracy de ambos conjuntos; pueden ayudar early stopping, dropout o regularización." \
+    "Señal típica: loss_train ↓ mientras loss_validation ↑; no basta con mirar training." \
+    "train.py" "early_stopping" \
+    "grep -nE 'early_stopping|val_loss|val_accuracy' train.py network.py" \
+    "Debe interpretar las curvas y justificar la conclusión con validation, no solo afirmar que la accuracy es alta."
+
+printf '\n%bCriterio práctico de puntuación oral%b\n' "$CYAN" "$RESET"
+cat <<'EOF'
+  5: explicación correcta, ordenada, con la idea matemática y conexión al código.
+  3-4: entiende el concepto, pero omite una parte menor o necesita preguntas.
+  1-2: reconoce palabras sueltas, pero confunde causa, fórmula o flujo.
+  0: no puede explicar el concepto.
+EOF
+
+printf '\n%bBonus (solo después de que todos los mandatory sean perfectos)%b\n' "$CYAN" "$RESET"
+cat <<'EOF'
+  Adam: identificar momentos/momentum y mostrar una ejecución con --optimizer adam.
+  Dropout: explicar regularización y mostrar una ejecución con --dropout.
+  Early stopping: explicar patience/restauración y enseñar el historial real.
+  Cada bonus debe representar trabajo sustancial y ser demostrable en el código;
+  su presencia en la documentación por sí sola no concede puntos.
+EOF
+
+section "6 · BONUS DEMOSTRABLES"
+concept "Un bonus no es solo una opción aceptada por argparse: debe cambiar realmente el comportamiento, quedar demostrado en una ejecución y poder explicarse oralmente."
+printf '%bLos bonus solo se pueden puntuar después de que mandatory esté perfecto.%b\n' "$YELLOW" "$RESET"
+printf '  %bSe comprueban con una ejecución real, no por la mera presencia de nombres en la documentación.%b\n' "$GREEN" "$RESET"
+show_reference "train.py" "--optimizer"
+printf '  %bComando reproducible:%b python3 train.py --dataset data_training.csv --validation data_validation.csv --layers 8 8 --epochs 2 --optimizer adam\n'
+check "Bonus Adam: entrenamiento ejecutable" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 train.py --dataset data_training.csv --validation data_validation.csv \
+      --layers 8 8 --epochs 2 --optimizer adam --seed 42 \
+      --save bonus-adam.json --history bonus-adam.json.history >/dev/null &&
+    test -s bonus-adam.json
+"
+show_reference "train.py" "--dropout"
+printf '  %bComando reproducible:%b python3 train.py --dataset data_training.csv --validation data_validation.csv --layers 8 8 --epochs 2 --dropout 0.2\n'
+check "Bonus Dropout: entrenamiento ejecutable" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 train.py --dataset data_training.csv --validation data_validation.csv \
+      --layers 8 8 --epochs 2 --dropout 0.2 --seed 42 \
+      --save bonus-dropout.json --history bonus-dropout.json.history >/dev/null &&
+    test -s bonus-dropout.json
+"
+show_reference "train.py" "early_stopping"
+printf '  %bComando reproducible:%b python3 train.py --dataset data_training.csv --validation data_validation.csv --epochs 30 --early_stopping --patience 5\n'
+check "Bonus Early Stopping: opción ejecutable" bash -c "
+    cd '$ARTIFACTS' &&
+    python3 train.py --dataset data_training.csv --validation data_validation.csv \
+      --layers 8 8 --epochs 30 --early_stopping --patience 5 --seed 42 \
+      --save bonus-early.json --history bonus-early.json.history >/dev/null &&
+    test -s bonus-early.json
+"
+
+if [[ "$RUN_OFFICIAL" -eq 1 ]]; then
+    section "7 · RENDIMIENTO CON evaluation.py OFICIAL"
+    concept "Este bloque mide el rendimiento observado con el protocolo oficial y varias semillas; no sustituye la revisión de modularidad, las pruebas numéricas ni la explicación de los algoritmos."
+    printf '  División reproducible del arnés: evaluation.py::splitDataset con random.seed(42).\n'
+    printf '  %bEste bloque reproduce el flujo de la hoja oficial: divide data.csv, entrena hasta tres modelos y conserva la mejor BCE.%b\n' "$GREEN" "$RESET"
+    show_reference "evaluation.py" "splitDataset"
+    printf '  %bComando reproducible:%b random.seed(42); splitDataset(...); python3 train.py ...; python3 predict.py ...\n'
+    check "Rendimiento oficial reproducible: mejor BCE por debajo de 0.08 (5/5)" bash -c "
+        rm -rf '$ARTIFACTS/official' &&
+        mkdir -p '$ARTIFACTS/official' &&
+        cp '$ROOT'/*.py '$ROOT'/data.csv '$ARTIFACTS/official/' &&
+        cd '$ARTIFACTS/official' &&
+        python3 -c 'import random, evaluation; random.seed(42); evaluation.splitDataset(\"./data.csv\", cut=0.25, label=False, shuffle=True)' &&
+        best= &&
+        for seed in 42 43 44; do
+            python3 train.py --dataset data_training.csv --validation data_test.csv \
+              --layers 24 24 --epochs 150 --learning_rate 0.05 --batch_size 16 \
+              --activation sigmoid --weight_init xavier --early_stopping --patience 15 \
+              --save model.json --history history.json --seed \"\$seed\" >/dev/null &&
+            python3 predict.py --dataset data_test.csv --model model.json \
+              --output predictions.csv > predict.log &&
+            value=\$(awk -F': ' '/Binary Cross-Entropy:/ {print \$2; exit}' predict.log) &&
+            if [ -z \"\$best\" ] || awk \"BEGIN {exit !(\$value < \$best)}\"; then best=\"\$value\"; fi
+        done &&
+        awk \"BEGIN {if (!(\$best < 0.08)) exit 1; printf \\\"best BCE=%.6f\\n\\\", \$best}\"
+    "
+else
+    printf '\nSe omitió el rendimiento oficial por --skip-official.\n'
+fi
+
+printf '\n%bCierre de la evaluación%b\n' "$CYAN" "$RESET"
+cat <<'EOF'
+  1. Marcar Implementation: modularity, split y softmax.
+  2. Marcar Training: display, metrics, model y saving.
+  3. Marcar Prediction: loading, BCE y rendimiento según el umbral observado.
+  4. Puntuar las cuatro preguntas de Algorithms understanding.
+  5. Evaluar bonus solo si mandatory está perfectamente completado.
+  6. Registrar flags y conclusión únicamente según lo observado en la defensa.
+EOF
+
+if [[ "$RUN_AUTO" -eq 1 ]]; then
+    section "8 · SUITE AUTOMÁTICA COMPLETA"
+    check "test_auto.sh" bash -c "cd '$ROOT' && ./test_auto.sh --non-interactive --no-graphs"
+else
+    printf '\nPara ejecutar también las comprobaciones exhaustivas: ./test_eval.sh --full-auto\n'
+fi
+
+printf '\n%bResumen: %d/%d comprobaciones pasaron%b\n' "$GREEN" "$PASSED" "$TOTAL" "$RESET"
+printf 'Evidencias: %s\n' "$ARTIFACTS"
+printf 'Log: %s\n' "$LOG"
+
+if [[ "$KEEP" -eq 0 ]]; then
+    rm -rf "$ARTIFACTS"
+    printf 'Artefactos eliminados por --clean.\n'
+fi
+
+if [[ "$FAILED" -ne 0 ]]; then
+    exit 1
+fi
+exit 0

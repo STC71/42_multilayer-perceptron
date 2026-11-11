@@ -6,6 +6,10 @@
 [ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
 [EVALUATION](./EVALUATION.md) · [RESULTS](./RESULTS.md)
 
+La guía de evaluación práctica basada en las hojas oficiales está en
+[`test_eval.sh`](./test_eval.sh). Esta suite automática se centra en checks
+reproducibles; no sustituye las preguntas de defensa oral.
+
 Los fundamentos matemáticos que justifican los checks están en
 [MATES.md](./MATES.md).
 
@@ -376,6 +380,7 @@ xdg-open test_auto_artifacts/accuracy.png
 | `make test` | Ejecuta el test de integración |
 | `make test-train` | Ejecuta un entrenamiento corto de validación |
 | `make test-auto` | Ejecuta esta suite automática completa |
+| `make test-eval` | Ejecuta la guía práctica alineada con la hoja oficial |
 | `make clean` | Elimina artefactos regenerables y resultados de tests |
 | `make fclean` | Hace `clean` y elimina modelo, `.npy` y entorno virtual |
 | `make re` | Hace `fclean` y reconstruye el flujo normal completo |

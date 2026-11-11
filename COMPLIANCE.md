@@ -10,6 +10,9 @@
 [ARCHITECTURE](./ARCHITECTURE.md) · [EVALUATION](./EVALUATION.md) ·
 [RESULTS](./RESULTS.md) · [test_auto.md](./test_auto.md)
 
+Evaluación ejecutable: [`test_eval.sh`](./test_eval.sh) · Suite automática:
+[`test_auto.sh`](./test_auto.sh)
+
 Las fórmulas y la justificación matemática de este checklist están desarrolladas
 en [MATES.md](./MATES.md).
 

@@ -46,6 +46,7 @@ modifica sus parámetros para aprender. Las fórmulas se han contrastado con
 | [EVALUATION.md](./EVALUATION.md) | ¿Cómo preparar una defensa o evaluación? |
 | [RESULTS.md](./RESULTS.md) | ¿Qué resultados se han observado en ejecuciones? |
 | [test_auto.md](./test_auto.md) | ¿Cómo se comprueba automáticamente el proyecto? |
+| [test_eval.sh](./test_eval.sh) | ¿Cómo se guía una evaluación según la hoja oficial? |
 
 Volver al [índice](#-índice).
 

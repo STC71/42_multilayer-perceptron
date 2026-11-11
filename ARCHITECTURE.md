@@ -6,6 +6,9 @@
 [EVALUATION](./EVALUATION.md) · [RESULTS](./RESULTS.md) ·
 [test_auto.md](./test_auto.md)
 
+La revisión práctica de arquitectura, entrenamiento y predicción se puede
+seguir con [`test_eval.sh`](./test_eval.sh).
+
 La explicación detallada de las ecuaciones utilizadas por esta arquitectura
 está en [MATES.md](./MATES.md).
 
