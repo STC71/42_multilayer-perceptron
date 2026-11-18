@@ -186,6 +186,19 @@ end_of_step() {
     fi
 }
 
+# Pausa entre sub-bloques (algoritmos, flujo oficial, etc.)
+pause_step() {
+    local label="${1:-}"
+    if [[ "$INTERACTIVE" -eq 1 && "$PAUSE" -eq 1 ]]; then
+        if [[ -n "$label" ]]; then
+            printf '\n%b--- Fin de %s ---%b\n' "$CYAN" "$label" "$RESET"
+        fi
+        printf '%bPulsa INTRO para continuar...%b' "$YELLOW" "$RESET"
+        read -r
+        echo
+    fi
+}
+
 ask_yes_no() {
     # Pregunta interactiva. Devuelve 0 = sí, 1 = no
     local prompt="$1"
@@ -757,6 +770,19 @@ else
 fi
 
 echo
+printf '   %bCómo generar y explicar los gráficos en la defensa:%b\n' "$BOLD" "$RESET"
+printf '      1. Tras entrenar (se crea training_history.json):\n'
+printf '           python3 visualize.py --history training_history.json --show\n'
+printf '      2. Deben generarse al menos:\n'
+printf '           • loss_curve.png      (training + validation loss)\n'
+printf '           • accuracy_curve.png  (training + validation accuracy)\n'
+printf '      3. Qué mirar con el estudiante:\n'
+printf '           • ¿Bajan las losses? → el modelo aprende.\n'
+printf '           • ¿Sube val_loss mientras train_loss baja? → overfitting.\n'
+printf '           • ¿Suben ambas accuracies y se acercan? → buen aprendizaje.\n'
+printf '      Estas curvas son las Figuras IV.1 y IV.2 del subject y apoyan\n'
+printf '      las casillas Display / Model de la escala de Training.\n'
+echo
 
 # -----------------------------------------------------------------------------
 # 2.3  Metrics – métricas adaptadas a clasificación binaria
@@ -1028,65 +1054,90 @@ echo
 info "3.3  Model performances: flujo oficial de evaluación de rendimiento"
 
 echo
-printf '%bEsta parte de la escala exige ejecutar el flujo oficial y mirar el Binary Cross-Entropy.%b\n' "$BOLD" "$RESET"
-printf 'Se pueden entrenar hasta 3 modelos y quedarse con el mejor resultado.\n'
+printf '%bEsta casilla de la escala NO se puntúa mirando solo el código.%b\n' "$BOLD" "$RESET"
+printf 'Hay que EJECUTAR el flujo oficial, obtener un Binary Cross-Entropy en test\n'
+printf 'y traducir ese número a puntos (0–5) con la tabla de la escala.\n'
+printf 'Se permiten hasta 3 entrenamientos; te quedas con el mejor BCE.\n'
 echo
-
-# --- Función auxiliar: pausa entre sub-pasos del flujo oficial ---
-pause_step() {
-    if [[ "$INTERACTIVE" -eq 1 && "$PAUSE" -eq 1 ]]; then
-        printf '\n%bPulsa INTRO para continuar...%b' "$YELLOW" "$RESET"
-        read -r
-        echo
-    fi
-}
+printf 'Motivo: el entrenamiento depende de la inicialización aleatoria de pesos,\n'
+printf 'así que dos ejecuciones pueden dar resultados distintos.\n'
+echo
 
 # ----- Paso 1 -----
 printf '%b▶ 1. Descargar evaluation.py de los recursos del proyecto.%b\n' "$CYAN" "$RESET"
-printf '   El fichero está en los attachments de la escala (intranet 42).\n'
+printf '   Está en los attachments de la página de evaluación (intranet 42),\n'
+printf '   junto a data.csv. Debe quedar en el directorio del proyecto.\n'
 printf '   %bEjecutar:%b\n' "$YELLOW" "$RESET"
-printf '      # Si ya lo tienes en el directorio del proyecto, no hace falta nada.\n'
-printf '      # Si no, descárgalo desde la página de evaluación y colócalo aquí:\n'
 printf '      ls -la evaluation.py\n'
-printf '   %bResultado esperado:%b debe existir el fichero evaluation.py en el directorio del proyecto.\n' "$GREEN" "$RESET"
-pause_step
+printf '   %bResultado esperado:%b el fichero evaluation.py existe aquí.\n' "$GREEN" "$RESET"
+pause_step "paso 1 (evaluation.py)"
 
 # ----- Paso 2 -----
 printf '%b▶ 2. Ejecutar evaluation.py%b\n' "$CYAN" "$RESET"
-printf '   (descarga el dataset, lo baraja y lo parte en train/test).\n'
+printf '   Este programa oficial descarga/prepara el dataset, lo baraja y lo\n'
+printf '   divide en dos partes para la evaluación de rendimiento.\n'
 printf '   %bEjecutar:%b\n' "$YELLOW" "$RESET"
 printf '      python3 evaluation.py\n'
-printf '   %bResultado esperado:%b se generan (o actualizan) los ficheros\n' "$GREEN" "$RESET"
-printf '      data_training.csv y data_test.csv (o nombres similares que indique el script).\n'
-pause_step
+printf '   %bResultado esperado:%b aparecen (o se actualizan) ficheros del estilo\n' "$GREEN" "$RESET"
+printf '      data_training.csv y data_test.csv.\n'
+printf '   Comprueba:\n'
+printf '      ls -la data_training.csv data_test.csv\n'
+pause_step "paso 2 (evaluation.py ejecutado)"
 
 # ----- Paso 3 -----
-printf '%b▶ 3. Entrenar un modelo nuevo con data_training.csv%b\n' "$CYAN" "$RESET"
-printf '   %bEjecutar:%b\n' "$YELLOW" "$RESET"
-printf '      python3 train.py --dataset data_training.csv --epochs 100 --verbose\n'
+printf '%b▶ 3. Entrenar un modelo NUEVO con data_training.csv%b\n' "$CYAN" "$RESET"
+printf '   No reutilices un modelo antiguo de otra partición: entrénarlo de cero\n'
+printf '   con el training que acaba de generar evaluation.py.\n'
+printf '   %bEjecutar (ejemplo recomendado):%b\n' "$YELLOW" "$RESET"
+printf '      python3 train.py --dataset data_training.csv --epochs 100 --verbose \\\n'
+printf '                       --early_stopping --save model_weights.npy\n'
 echo
 printf '   %bAjustes opcionales más útiles:%b\n' "$YELLOW" "$RESET"
-printf '      --layers 24 24          Neuronas por cada capa oculta (default: 24 24).\n'
-printf '                             Más capas/neuronas = más capacidad, más riesgo de overfitting.\n'
+printf '      --layers 24 24          Neuronas por capa oculta (default: 24 24).\n'
 printf '      --learning_rate 0.05   Tamaño del paso al actualizar pesos.\n'
-printf '                             Muy alto → inestable; muy bajo → aprende lento.\n'
-printf '      --batch_size 16        Cuántas muestras se usan en cada actualización de pesos.\n'
-printf '      --activation relu      Función de activación de las capas ocultas\n'
-printf '                             (sigmoid, tanh, relu, leaky_relu).\n'
-printf '      --optimizer adam       Optimizador: sgd (baseline), sgd_momentum, rmsprop, adam.\n'
-printf '                             Adam suele converger más rápido.\n'
-printf '      --early_stopping       Para el entrenamiento si la validación deja de mejorar.\n'
-printf '      --patience 10          Épocas sin mejora antes de parar (con early_stopping).\n'
-printf '      --dropout 0.2          Apaga neuronas al azar durante el entrenamiento (regularización).\n'
-printf '      --save model_weights.npy   Fichero donde se guarda el modelo\n'
-printf '                                 (default del repo: model_weights.npy).\n'
-printf '      --seed 42              Semilla para reproducibilidad.\n'
+printf '      --batch_size 16        Muestras por actualización.\n'
+printf '      --activation relu      sigmoid | tanh | relu | leaky_relu.\n'
+printf '      --optimizer adam       sgd | sgd_momentum | rmsprop | adam.\n'
+printf '      --early_stopping       Para si la validación deja de mejorar.\n'
+printf '      --patience 10          Épocas de espera antes de parar.\n'
+printf '      --dropout 0.2          Regularización (apaga neuronas al azar).\n'
+printf '      --save model_weights.npy   Nombre del modelo guardado (default del repo).\n'
+printf '      --seed 42              Semilla (cambia entre los 3 intentos si quieres).\n'
 echo
 printf '   %bResultado esperado:%b\n' "$GREEN" "$RESET"
-printf '      - Se muestran métricas por época (loss, val_loss, acc, val_acc).\n'
-printf '      - Al final se guarda el modelo en model_weights.npy\n'
-printf '        (o el nombre que hayas pasado con --save).\n'
-pause_step
+printf '      - Métricas por época en pantalla (loss, val_loss, acc, val_acc).\n'
+printf '      - Modelo guardado en model_weights.npy\n'
+printf '      - Historial en training_history.json (para las curvas).\n'
+pause_step "paso 3 (entrenamiento)"
+
+# ----- Paso 3b: curvas (exigidas por subject y útiles en la defensa) -----
+printf '%b▶ 3b. Generar y revisar las curvas de aprendizaje (subject)%b\n' "$CYAN" "$RESET"
+printf '   El subject exige curvas de loss y accuracy (train + validation).\n'
+printf '   %bEjecutar:%b\n' "$YELLOW" "$RESET"
+printf '      python3 visualize.py --history training_history.json --show\n'
+printf '   (sin --show solo genera los PNG; con --show también los abre)\n'
+echo
+printf '   %bFicheros que deben aparecer:%b\n' "$GREEN" "$RESET"
+printf '      loss_curve.png       → loss de entrenamiento y de validación\n'
+printf '      accuracy_curve.png   → accuracy de entrenamiento y de validación\n'
+printf '   Comprueba:\n'
+printf '      ls -la loss_curve.png accuracy_curve.png\n'
+echo
+printf '   %bCómo leer los gráficos (importante en la evaluación):%b\n' "$BOLD" "$RESET"
+printf '      CURVA DE LOSS\n'
+printf '        - Eje X = épocas; eje Y = error (Binary Cross-Entropy u otra loss).\n'
+printf '        - La línea de training debería BAJAR (la red aprende).\n'
+printf '        - La de validation también debería bajar o estabilizarse.\n'
+printf '        - Si train baja pero validation SUBE → overfitting.\n'
+echo
+printf '      CURVA DE ACCURACY\n'
+printf '        - Eje X = épocas; eje Y = %% de aciertos (0 a 1 o 0 a 100).\n'
+printf '        - Ambas líneas deberían SUBIR y acercarse.\n'
+printf '        - Gran hueco train alto / val bajo → otra señal de overfitting.\n'
+echo
+printf '   Estas curvas apoyan las casillas “Does the model learn?” y\n'
+printf '   “The model is not overfitting” de la escala de Training.\n'
+pause_step "paso 3b (curvas)"
 
 # ----- Paso 4 -----
 printf '%b▶ 4. Predecir sobre data_test.csv con ese modelo%b\n' "$CYAN" "$RESET"
@@ -1094,54 +1145,70 @@ printf '   %bEjecutar:%b\n' "$YELLOW" "$RESET"
 printf '      python3 predict.py --model model_weights.npy --dataset data_test.csv\n'
 echo
 printf '   %bNombre del modelo en este repositorio:%b\n' "$YELLOW" "$RESET"
-printf '      Por defecto el proyecto guarda y carga:  %bmodel_weights.npy%b\n' "$BOLD" "$RESET"
-printf '      (definido en config.py como MODEL_FILE = '\''model_weights.npy'\'').\n'
-printf '      Solo cambia --model si en el entrenamiento usaste otro nombre con --save.\n'
+printf '      Default: %bmodel_weights.npy%b  (MODEL_FILE en config.py).\n' "$BOLD" "$RESET"
+printf '      Solo cambia --model si usaste otro nombre con --save al entrenar.\n'
 echo
 printf '   %bResultado esperado:%b\n' "$GREEN" "$RESET"
-printf '      - Se cargan el modelo (model_weights.npy) y el dataset de test.\n'
-printf '      - Se muestran métricas de evaluación, entre ellas el Binary Cross-Entropy.\n'
-pause_step
+printf '      - Carga de modelo + dataset de test.\n'
+printf '      - Informe con accuracy y, sobre todo, Binary Cross-Entropy.\n'
+printf '      - Anota el número de BCE: es el que puntúa esta casilla.\n'
+pause_step "paso 4 (predicción)"
 
 # ----- Paso 5 -----
-printf '%b▶ 5. Mirar el Binary Cross-Entropy obtenido en test%b\n' "$CYAN" "$RESET"
-printf '   Observa en la salida de predict.py la línea que indica el valor de\n'
-printf '   Binary Cross-Entropy (BCE) sobre el conjunto de test.\n'
+printf '%b▶ 5. Traducir el Binary Cross-Entropy a puntos (0–5)%b\n' "$CYAN" "$RESET"
+printf '   Coge el BCE que ha impreso predict.py sobre data_test.csv.\n'
 echo
-printf '   %b¿Qué significa ese valor? (explicación sencilla)%b\n' "$BOLD" "$RESET"
-printf '      El Binary Cross-Entropy mide cómo de “equivocada” está la red en promedio.\n'
-printf '      - Si vale cerca de 0 → la red está muy segura y casi siempre acierta.\n'
-printf '      - Si vale cerca de 0.7 → es casi como tirar una moneda (no ha aprendido bien).\n'
-printf '      - Cuanto MÁS BAJO sea el número, MEJOR es el modelo.\n'
+printf '   %b¿Qué es ese número?%b\n' "$BOLD" "$RESET"
+printf '      Binary Cross-Entropy = “cómo de equivocada está la red en promedio”.\n'
+printf '      - Cerca de 0.00 → muy bien (segura y casi siempre acierta).\n'
+printf '      - Cerca de 0.69 → como lanzar una moneda (no ha aprendido).\n'
+printf '      - Cuanto MÁS BAJO, MEJOR.\n'
 echo
-printf '   %bValoración según la escala oficial (BCE en test):%b\n' "$BOLD" "$RESET"
-printf '        BCE > 0.35          →  0 puntos\n'
-printf '        0.35 ≥ BCE > 0.25   →  1 punto\n'
-printf '        0.25 ≥ BCE > 0.18   →  2 puntos\n'
-printf '        0.18 ≥ BCE > 0.13   →  3 puntos\n'
-printf '        0.13 ≥ BCE > 0.08   →  4 puntos\n'
-printf '        BCE ≤ 0.08          →  5 puntos (excelente)\n'
+printf '   %bTabla oficial de la escala (BCE en test):%b\n' "$BOLD" "$RESET"
+printf '      ┌─────────────────────┬────────┐\n'
+printf '      │ Valor de BCE        │ Puntos │\n'
+printf '      ├─────────────────────┼────────┤\n'
+printf '      │  BCE > 0.35         │   0    │\n'
+printf '      │  0.35 ≥ BCE > 0.25  │   1    │\n'
+printf '      │  0.25 ≥ BCE > 0.18  │   2    │\n'
+printf '      │  0.18 ≥ BCE > 0.13  │   3    │\n'
+printf '      │  0.13 ≥ BCE > 0.08  │   4    │\n'
+printf '      │  BCE ≤ 0.08         │   5    │\n'
+printf '      └─────────────────────┴────────┘\n'
 echo
-printf '   Puedes repetir los pasos 3 y 4 hasta 3 veces (con distintas semillas o\n'
-printf '   hiperparámetros) y quedarte con el mejor BCE para puntuar esta casilla.\n'
-pause_step
+printf '   %bHasta 3 intentos:%b puedes repetir pasos 3 y 4 (cambia --seed u otros\n' "$BOLD" "$RESET"
+printf '   hiperparámetros). Te quedas solo con el MEJOR BCE para puntuar.\n'
+echo
+printf '   %bEjemplo:%b si el mejor test da BCE = 0.11 → está entre 0.13 y 0.08 → 4 puntos.\n' "$GREEN" "$RESET"
+pause_step "paso 5 (puntuación BCE)"
 
-# Comprobaciones de soporte (no ejecutan el entrenamiento completo aquí)
+# Comprobaciones de soporte
 if [[ -f "$ROOT/predict.py" && -f "$ROOT/train.py" ]]; then
-    ok "Existen train.py y predict.py para poder ejecutar el flujo de rendimiento"
+    ok "Existen train.py y predict.py para el flujo de rendimiento"
 else
     fail "Faltan train.py y/o predict.py → no se puede completar el flujo de rendimiento"
 fi
 
-# Ver si hay algún resultado previo o historial
+if [[ -f "$ROOT/visualize.py" ]]; then
+    ok_at "Existe visualize.py para generar las curvas del subject" \
+          'plot_loss_curve|plot_accuracy|matplotlib' "$ROOT/visualize.py"
+else
+    warn "3.3 – No está visualize.py (las curvas del subject hay que poder mostrarlas)"
+fi
+
 if ls "$ROOT"/model*.npy "$ROOT"/model*.json "$ROOT"/saved_model* 2>/dev/null | head -1 >/dev/null; then
-    ok "Se encontraron ficheros de modelo guardados (útiles para predecir)"
+    ok "Se encontraron ficheros de modelo guardados"
     ls -1 "$ROOT"/model*.npy "$ROOT"/model*.json "$ROOT"/saved_model* 2>/dev/null | head -5 | while read -r f; do
         info "    → $(basename "$f")"
     done
 else
-    info "3.3 – No hay modelos guardados todavía (normal si aún no se ha entrenado)"
-    info "      Entrena antes con:  python3 train.py --dataset data_training.csv --verbose"
+    info "3.3 – Aún no hay modelos guardados (normal antes del primer entrenamiento)"
+fi
+
+if ls "$ROOT"/loss_curve.png "$ROOT"/accuracy_curve.png 2>/dev/null | head -1 >/dev/null; then
+    ok "Se encontraron gráficos generados (loss_curve / accuracy_curve)"
+else
+    info "3.3 – Aún no hay PNG de curvas (se crean con visualize.py tras entrenar)"
 fi
 
 echo
@@ -1160,10 +1227,12 @@ fi
 
 echo
 printf '%bRecordatorio para el evaluador:%b\n' "$BOLD" "$RESET"
-printf '  • Loading  → verificar que se cargan topología + pesos + dataset (sin hard-code).\n'
-printf '  • Metrics  → confirmar que se usa Binary Cross-Entropy en la predicción.\n'
-printf '  • Performances → ejecutar el flujo oficial (evaluation.py + train + predict)\n'
-printf '                   y puntuar 0-5 según el BCE obtenido en test.\n'
+printf '  • Loading      → topología + pesos + dataset cargados (sin hard-code).\n'
+printf '  • Metrics      → Binary Cross-Entropy en la predicción.\n'
+printf '  • Performances → flujo oficial obligatorio:\n'
+printf '        evaluation.py → train (data_training) → predict (data_test)\n'
+printf '        + curvas (visualize.py) para ver aprendizaje / overfitting\n'
+printf '        + puntuar 0–5 según el MEJOR BCE en test (tabla de la escala).\n'
 
 end_of_step "PASO 3 - Prediction"
 
@@ -1217,7 +1286,7 @@ printf '  • Qué son z, W, b y a.\n'
 printf '  • Para qué sirve la activación y por qué Softmax al final.\n'
 echo
 printf '  %bPuntuación escala: 0 (no entiende) … 5 (excelente)%b\n' "$YELLOW" "$RESET"
-pause_step
+pause_step "Feedforward"
 
 # -----------------------------------------------------------------------------
 # 4.2  Gradient Descent
@@ -1256,7 +1325,7 @@ printf '  • Qué es el learning rate y qué pasa si es muy grande o muy peque�
 printf '  • Diferencia intuitiva entre SGD y Adam (si lo ha implementado).\n'
 echo
 printf '  %bPuntuación escala: 0 (no entiende) … 5 (excelente)%b\n' "$YELLOW" "$RESET"
-pause_step
+pause_step "Gradient Descent"
 
 # -----------------------------------------------------------------------------
 # 4.3  Backpropagation
@@ -1300,7 +1369,7 @@ printf '  • Cómo se usa la regla de la cadena (sin necesidad de demostrar tod
 printf '  • La simplificación ŷ − y cuando hay Softmax + Cross-Entropy.\n'
 echo
 printf '  %bPuntuación escala: 0 (no entiende) … 5 (excelente)%b\n' "$YELLOW" "$RESET"
-pause_step
+pause_step "Backpropagation"
 
 # -----------------------------------------------------------------------------
 # 4.4  Overfitting
@@ -1335,7 +1404,7 @@ printf '  • Cómo se ve en las curvas train vs validation.\n'
 printf '  • Qué medidas ha usado en su código para evitarlo.\n'
 echo
 printf '  %bPuntuación escala: 0 (no entiende) … 5 (excelente)%b\n' "$YELLOW" "$RESET"
-pause_step
+pause_step "Overfitting"
 
 # -----------------------------------------------------------------------------
 # 4.5  Resumen del Paso 4

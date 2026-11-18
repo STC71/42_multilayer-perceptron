@@ -277,7 +277,7 @@ def main():
     """
     print()
     print("╔" + "=" * 78 + "╗")
-    print("║" + " " * 20 + "🧪 TEST DE INTEGRACIÓN COMPLETO" + " " * 26 + "║")
+    print("║" + " " * 21 + "🧪 TEST DE INTEGRACIÓN COMPLETO" + " " * 26 + "║")
     print("╚" + "=" * 78 + "╝")
     print()
     

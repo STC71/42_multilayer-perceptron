@@ -12,6 +12,12 @@
 # Para instalar las dependencias, se puede usar el siguiente comando en la terminal:
 # pip install -r requirements.txt
 
+# En nuestro caso, las dependencias necesarias para el proyecto son numpy, matplotlib y pandas.
+# Y se cargan en el proyecto mediante la instrucción "import" en el código Python.
+# Se ejecuta el pip intall dentro de nuestro código, comprobando antes si la librería ya está 
+# instalada, y si no lo está, se instala automáticamente. O sea, no hace falta que el usuario
+# ejecute manualmente el pip install, ya que el código se encarga de hacerlo por él.
+
 # Álgebra lineal y arrays (permitido por el subject)
 numpy>=1.20.0
 # numpy es una librería de Python que proporciona soporte para trabajar con arrays 

@@ -1,9 +1,11 @@
-# 📖 Guía de Evaluación - Multilayer Perceptron
+# 📖 Guía de Evaluación y Defensa - Multilayer Perceptron
 
 > **Proyecto:** multilayer-perceptron  
 > **Autor:** sternero  
-> **Estado:** ✅ Mandatory implementado; bonus verificables durante la defensa
+> **Estado:** ✅ Mandatory y Bonus implementados y verificables  
 > **Tiempo estimado evaluación:** 15-20 minutos
+
+---
 
 ## 🧭 Navegación
 
@@ -11,39 +13,40 @@
 [ARCHITECTURE](./ARCHITECTURE.md) · [COMPLIANCE](./COMPLIANCE.md) ·
 [RESULTS](./RESULTS.md) · [test_auto.md](./test_auto.md)
 
-Para una evaluación guiada alineada con `en.eval.pdf` y `es.eval.pdf`, usa
-[`test_eval.sh`](./test_eval.sh). Para la suite exhaustiva automatizada, usa
-[`test_auto.sh`](./test_auto.sh).
-
-Para preparar la explicación matemática de la defensa, consulta
-[MATES.md](./MATES.md).
+* Para una evaluación guiada alineada con la hoja oficial (`scale`), usa [`test_eval.sh`](./test_eval.sh).
+* Para la suite exhaustiva automatizada, usa [`test_auto.sh`](./test_auto.sh).
+* Para revisar las derivadas y ecuaciones paso a paso, consulta [MATES.md](./MATES.md).
 
 ---
 
 ## 🚀 Inicio Rápido (Para Evaluadores)
 
-### 1️⃣ Verificar estructura del proyecto
+### 1️⃣ Verificar estructura e independencia de frameworks
 
 ```bash
 cd artificial_intelligence/multilayer-perceptron
 ls -la
+grep -h "^import\|^from" *.py | sort -u
 ```
 
+**Verificación clave:** No existen imports de TensorFlow, Keras, PyTorch ni `sklearn.neural_network`. Todo el motor matemático está programado desde cero usando únicamente operaciones matriciales básicas con NumPy.
+
 **Archivos obligatorios esperados:**
-- ✅ `split_dataset.py` - División train/validation
-- ✅ `train.py` - Script de entrenamiento  
-- ✅ `predict.py` - Script de predicción
-- ✅ `data.csv` - Dataset original (569 muestras)
-- ✅ Módulos core: `network.py`, `layers.py`, `activation.py`, `loss.py`, `metrics.py`
-- ✅ Documentación: `README.md`, `MATES.md`, `ARCHITECTURE.md`, `RESULTS.md`, `COMPLIANCE.md`
+* ✅ `split_dataset.py` — División train/validation
+* ✅ `train.py` — Script de entrenamiento con backpropagation
+* ✅ `predict.py` — Script de predicción y cálculo de Binary Cross-Entropy
+* ✅ `visualize.py` — Generación de curvas de aprendizaje
+* ✅ `data.csv` — Dataset original (569 muestras, 30 características + diagnóstico)
+* ✅ Módulos core: `network.py`, `layers.py`, `activation.py`, `loss.py`, `metrics.py`, `optimizers.py`, `preprocessing.py`, `initialization.py`
 
 ### 2️⃣ Ejecutar test de integración
 
 ```bash
+python3 split_dataset.py data.csv
 python3 test_integration.py
 ```
 
-**Resultado esperado:**
+**Resultado esperado (~10 segundos):**
 ```
 ✅ TODOS LOS TESTS PASARON CORRECTAMENTE
    ✅ PASS  División de datos
@@ -54,819 +57,226 @@ python3 test_integration.py
    ✅ PASS  Métricas
 ```
 
-**Tiempo:** ~10 segundos
-
 ---
 
-## 📋 Evaluación Detallada
+## 📋 Protocolo Oficial de Evaluación (Rúbrica 42)
 
-### ✅ Mandatory Part
+### 1. Implementation & Training (Parte Obligatoria)
 
-#### 1. División del Dataset
-
+#### A. División del Dataset (si no se ha hecho antes) y Preprocesamiento
 ```bash
 make split
-# o: python3 split_dataset.py data.csv
+# Equivalente a: python3 split_dataset.py data.csv
 ```
+* **Qué comprobar:** Se generan `data_training.csv` (80% - 455 muestras) y `data_validation.csv` (20% - 114 muestras).
+* **Preprocesamiento:** Los parámetros de escalado (media y desviación estándar) se calculan **exclusivamente** sobre el conjunto de entrenamiento y se guardan junto al modelo para aplicarlos después sobre los datos de prueba sin contaminar el experimento (*data leakage*).
 
-**Verificar:**
-- [x] Se crean `data_training.csv` (455 muestras) y `data_validation.csv` (114 muestras)
-- [x] Proporción 80/20 correcta
-- [x] Pregunta: ¿Por qué esta proporción? → Balance entre datos para entrenar y validar
-
-**Tiempo:** < 1 segundo
-
----
-
-#### 2. Arquitectura de la Red
-
-**Verificar en el código:**
-
+#### B. Arquitectura y Softmax
 ```bash
-# Ver arquitectura implementada
 grep -A 20 "def build" network.py
 ```
+* **Mínimo 2 capas ocultas:** Cumplido por defecto (profundidad mínima de 4 capas contando entrada y salida) y configurable mediante `--layers`.
+* **Softmax en la salida:** Implementado en `activation.py` (líneas 149-195) para devolver una distribución de probabilidades cuya suma es 1.
 
-**Requisitos:**
-- [x] Mínimo 2 capas ocultas → ✅ Implementado (24 + 24 neuronas por defecto)
-- [x] Softmax en la última capa → ✅ Ver `network.py` línea ~180
-- [x] Backpropagation implementado → ✅ Ver `network.py` líneas 195-380
-
-**Pregunta defensa:** ¿Cómo funciona backpropagation?
-- Respuesta esperada: Regla de la cadena, propagación del error hacia atrás, cálculo de gradientes
-
----
-
-#### 3. Entrenamiento
-
-```bash
-# Entrenamiento rápido (demo para evaluación)
-make test-train
-
-# Entrenamiento completo (si hay tiempo)
-make train
-```
-
-**Verificar output:**
-- [x] Muestra `epoch XX/YY - loss: ... - val_loss: ... - acc: ... - val_acc: ...`
-- [x] Loss disminuye con las épocas
-- [x] Accuracy aumenta con las épocas
-- [x] Se guarda `model_weights.npy`
-- [x] Se guarda `training_history.json`
-
-**Ejemplo real obtenido:**
-```
-epoch 01/150 - loss: 0.4972 - val_loss: 0.3867 - acc: 0.9055 - val_acc: 0.9211
-epoch 02/150 - loss: 0.3050 - val_loss: 0.2841 - acc: 0.9319 - val_acc: 0.9211
-...
-epoch 19/150 - loss: 0.0199 - val_loss: 0.1402 - acc: 0.9978 - val_acc: 0.9649
-⚠️  Early stopping en época 19 (patience=10)
-```
-
-**Tiempo:** 7 segundos (19 épocas con early stopping)
-
----
-
-#### 4. Predicción
-
-```bash
-make predict
-# o: python3 predict.py --dataset data_validation.csv --model model_weights.npy
-```
-
-**Verificar:**
-- [x] Carga el modelo correctamente
-- [x] Hace predicciones en datos nuevos
-- [x] Muestra métricas de evaluación
-- [x] **Binary Cross-Entropy displayada** (MANDATORY del subject página 10)
-
-**Output esperado:**
-```
-Binary Cross-Entropy: 0.1402
-
-Accuracy:    96.49%
-Precision:   100.00%
-Recall:      92.16%
-F1-Score:    95.92%
-
-Matriz de Confusión:
-              Benigno  Maligno
-   Benigno       63        0
-   Maligno        4       47
-```
-
-**Tiempo:** < 1 segundo
-
-#### 5. Rendimiento oficial y diferencia con validation
-
-El flujo interno usa `data_validation.csv` para observar el entrenamiento.
-El protocolo de rendimiento usa `evaluation.py`, que crea `data_test.csv`,
-entrena con `data_training.csv` y calcula la Binary Cross-Entropy sobre datos
-no usados para actualizar los pesos.
-
-```bash
-make test-eval
-# o, sin pausas entre secciones:
-./test_eval.sh --no-pause
-```
-
-La guía fija la semilla de la división dentro de su arnés para que el resultado
-pueda repetirse; esto no modifica `evaluation.py` ni sustituye la evaluación
-humana. Para revisar la matemática de backpropagation directamente:
-
-```bash
-make test-gradient
-make test-dropout-gradient
-```
-
----
-
-#### 6. Binary Cross-Entropy (CRÍTICO)
-
-**Fórmula del subject (página 10):**
-```
-E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
-```
-
-**Verificar implementación:**
-
-```bash
-# Ver la implementación
-grep -A 15 "def binary_crossentropy" loss.py
-```
-
-**Código implementado:**
-```python
-def binary_crossentropy(y_true, y_pred, epsilon=1e-15):
-    """
-    Binary Cross-Entropy Loss.
-    
-    Formula (del subject página 10):
-        E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
-    """
-    y_pred = [max(epsilon, min(1 - epsilon, p)) for p in y_pred]
-    n = len(y_true)
-    loss = -sum(yt * (p**epsilon if p <= 0 else log(p)) + 
-                (1 - yt) * ((1-p)**epsilon if (1-p) <= 0 else log(1-p))
-                for yt, p in zip(y_true, y_pred)) / n
-    return loss
-```
-
-**Pregunta defensa:** ¿Por qué Binary Cross-Entropy en lugar de MSE?
-- Cross-entropy mide divergencia entre distribuciones de probabilidad
-- Gradientes más estables para clasificación
-- Penaliza más las predicciones muy incorrectas
-
-**Valor obtenido:** E = 0.1402 ✅
-
----
-
-#### 6. Curvas de Aprendizaje
-
-```bash
-make visualize
-```
-
-**Verificar:**
-- [x] Se genera `loss_curve.png` (Figura IV.1 del subject)
-- [x] Se genera `accuracy_curve.png` (Figura IV.2 del subject)
-- [x] `test_auto.sh` genera y explica `learning_curves.png` como bonus combinado
-- [x] Curvas muestran training y validation
-- [x] Loss desciende, Accuracy asciende
-
-**Curvas del subject vs Implementadas:**
-
-| Subject Figure | Archivo Generado | Contenido |
-|----------------|------------------|-----------|
-| Figura IV.1 | `loss_curve.png` | Training Loss + Validation Loss |
-| Figura IV.2 | `accuracy_curve.png` | Training Accuracy + Validation Accuracy |
-
-**Tiempo:** < 5 segundos (requiere matplotlib en venv)
-
----
-
-### ⭐ Bonus Part
-
-#### 1. Early Stopping ✅
-
-**Verificar:** Revisar output del entrenamiento
-```
-⚠️  Early stopping en época 19 (patience=10)
-   Mejor val_loss: 0.1283
-```
-
-**Implementado:** ✅ Monitorea val_loss y para si no mejora en 10 épocas
-
----
-
-#### 2. Múltiples Métricas ✅
-
-**Verificar:** Output de `make predict`
-
-- [x] Accuracy
-- [x] Precision  
-- [x] Recall
-- [x] F1-Score
-- [x] Specificity
-- [x] Confusion Matrix
-
-**Todas implementadas en:** `metrics.py`
-
----
-
-#### 3. Hiperparámetros Configurables ✅
-
-```bash
-# Probar configuración custom
-python3 train.py --dataset data_training.csv \
-                 --layers 32 16 8 \
-                 --epochs 50 \
-                 --learning_rate 0.03 \
-                 --batch_size 8 \
-                 --activation tanh
-```
-
-**Parámetros disponibles:**
-- `--layers`: Arquitectura custom
-- `--epochs`: Número de épocas
-- `--learning_rate`: Learning rate
-- `--batch_size`: Tamaño batch
-- `--activation`: sigmoid/tanh/relu/leaky_relu
-- `--weight_init`: he/xavier/random
-
----
-
-#### 4. Múltiples Activaciones ✅
-
-**Verificar implementación:**
-
-```bash
-# Ver activaciones disponibles
-grep -A 5 "def sigmoid\|def tanh\|def relu\|def softmax" activation.py | head -30
-```
-
-**Activaciones implementadas:**
-- [x] Sigmoid + derivative
-- [x] Tanh + derivative
-- [x] ReLU + derivative
-- [x] Leaky ReLU + derivative
-- [x] Softmax + derivative
-- [x] Linear + derivative
-
-**Todas testeadas:** Ver `activation.py` parte final con tests
-
----
-
-#### 5. Inicialización de Pesos ✅
-
-**Métodos implementados:**
-- [x] **He Normal/Uniform:** Óptimo para ReLU (σ² = 2/n_in)
-- [x] **Xavier Normal/Uniform:** Óptimo para sigmoid/tanh (σ² = 1/n_in)
-- [x] **Random:** Baseline
-
-**Verificar:**
-```bash
-grep -A 10 "def he_normal\|def xavier_normal" initialization.py
-```
-
-**Pregunta defensa:** ¿Por qué He para ReLU?
-- He inicializa con varianza 2/n_in
-- Compensa que ReLU anula la mitad de neuronas (valores negativos → 0)
-- Mantiene varianza constante a través de capas
-
----
-
-#### 6. Batch Training ✅
-
-**Verificar en código:**
-
-```bash
-grep -A 20 "def _backward_batch" network.py
-```
-
-- [x] Implementa mini-batch gradient descent
-- [x] Promedia gradientes sobre el batch
-- [x] Batch size configurable
-
-**Configuración óptima encontrada:** batch_size=16
-
----
-
-## 🎯 Preguntas de Defensa Típicas
-
-### 1. ¿Qué es backpropagation?
-
-**Respuesta:** Algoritmo para calcular gradientes en redes neuronales:
-1. Forward: calcular output
-2. Calcular error: δ[L] = ŷ - y
-3. Backward: propagar error hacia atrás usando regla de la cadena
-4. Update: W = W - α·∂L/∂W
-
-**Código:** `network.py` líneas 195-270
-
----
-
-### 2. ¿Por qué Binary Cross-Entropy?
-
-**Respuesta:** 
-- Mide divergencia entre distribución predicha y real
-- Gradientes estables para clasificación
-- Penaliza fuertemente predicciones incorrectas (log tiende a -∞)
-- Requerido por el subject (página 10)
-
-**Fórmula:** E = -1/N × Σ[yn log(pn) + (1-yn) log(1-pn)]
-
----
-
-### 3. ¿Por qué softmax en la última capa?
-
-**Respuesta:**
-- Convierte logits en probabilidades (suma = 1)
-- Interpretable: P(clase=1) directamente
-- Diferenciable para backpropagation
-- Standard para clasificación
-
-**Código:** `activation.py` línea 149-195
-
----
-
-### 4. ¿Cómo elegiste los hiperparámetros?
-
-**Respuesta:**
-- Learning rate 0.05: Probado 0.01 (muy lento), 0.1 (inestable), 0.05 óptimo
-- Batch size 16: Balance entre ruido estocástico y estabilidad
-- ReLU: Probado sigmoid (vanishing gradients), ReLU funcionó mejor
-- He initialization: Estándar para ReLU
-
-**Comparación:**
-
-| Config | Activation | LR | Resultado |
-|--------|------------|----|-----------|
-| ❌ Primera | Sigmoid | 0.01 | Estancado (predice siempre clase mayoritaria) |
-| ✅ Óptima | ReLU | 0.05 | 96.49% validation accuracy |
-
----
-
-### 5. ¿Qué es early stopping?
-
-**Respuesta:**
-- Técnica de regularización
-- Monitorea validation loss
-- Para si no mejora en N épocas (patience=10)
-- Previene overfitting
-
-**Resultado:** Paró en época 19/150 automáticamente
-
----
-
-## 📊 Métricas Finales del Modelo
-
-### Performance
-
-```
-Training Accuracy:    99.78%
-Validation Accuracy:  96.49%
-
-Precision:  100.00%  (de los predichos como maligno, todos correctos)
-Recall:      92.16%  (de los malignos reales, detecta 92.16%)
-F1-Score:    95.92%  (media armónica precision/recall)
-
-Binary Cross-Entropy: 0.1402
-```
-
-### Confusion Matrix
-
-```
-                Predicho
-              Benigno  Maligno
-    Benigno       63        0
-    Maligno        4       47
-```
-
-**Análisis:**
-- **True Negatives (63):** Todos los benignos detectados correctamente
-- **True Positives (47):** 92% de malignos detectados
-- **False Positives (0):** Ningún falso maligno (evita biopsias innecesarias)
-- **False Negatives (4):** 4 malignos no detectados (margen de mejora)
-
----
-
-## 🧪 Tests de Validación
-
-### Test 1: División Dataset
-
-```bash
-make split
-```
-
-**Verificar:**
-- Genera `data_training.csv` (455 muestras)
-- Genera `data_validation.csv` (114 muestras)
-- Proporción 80/20 correcta
-
----
-
-### Test 2: Entrenamiento Completo
-
+#### C. Entrenamiento y Guardado
 ```bash
 make train
 ```
+* **Métricas por época:** Muestra `loss`, `val_loss`, `acc` y `val_acc` en cada época.
+* **Guardado:** Al terminar guarda la topología, los pesos y los parámetros de normalización en `model_weights.npy`, además del historial en `training_history.json`.
 
-**Durante ejecución, verificar:**
-- Output por época con formato: `epoch XX/YY - loss: ... - val_loss: ...`
-- Loss disminuye progresivamente
-- Accuracy aumenta progresivamente
-- Early stopping se activa (opcional)
-
-**Al finalizar, verificar:**
-- Se crea `model_weights.npy`
-- Se crea `training_history.json`
-- Training accuracy > 95%
-- Validation accuracy > 90%
-
-**Resultado esperado:** 99.78% train, 96.49% validation
-
----
-
-### Test 3: Predicción
-
-```bash
-make predict
-```
-
-**Verificar:**
-- Carga modelo desde `model_weights.npy`
-- Muestra **Binary Cross-Entropy** (MANDATORY)
-- Muestra métricas: Accuracy, Precision, Recall, F1
-- Muestra matriz de confusión
-
-**Output esperado:**
-```
-Binary Cross-Entropy: 0.1402
-
-Accuracy:    96.49%
-Precision:   100.00%
-Recall:      92.16%
-F1-Score:    95.92%
-```
-
----
-
-### Test 4: Visualización
-
+#### D. Curvas de Aprendizaje
 ```bash
 make visualize
 ```
+* Genera `loss_curve.png` (Figura IV.1 del subject) y `accuracy_curve.png` (Figura IV.2 del subject), mostrando tanto la curva de entrenamiento como la de validación.
 
-**Verificar:**
-- Se genera `loss_curve.png` (Figura IV.1 del subject)
-- Se genera `accuracy_curve.png` (Figura IV.2 del subject)
-- Ambas con curvas training y validation
-- Loss desciende, Accuracy asciende
+**📖 Cómo leer e interpretar estas dos gráficas (Explicación sencilla):**
 
-**Nota:** Si falla por matplotlib, instalar: `make venv && make visualize`
-
----
-
-## 📂 Estructura de Archivos
-
-```
-multilayer-perceptron/
-├── 📊 DATOS
-│   ├── data.csv                    # Dataset original (569 muestras)
-│   ├── data_training.csv           # Training set (455, 80%)
-│   └── data_validation.csv         # Validation set (114, 20%)
-│
-├── 🧠 SCRIPTS PRINCIPALES (Mandatory)
-│   ├── split_dataset.py            # División train/validation
-│   ├── train.py                    # Entrenamiento con backpropagation
-│   ├── predict.py                  # Predicción + evaluación
-│   └── visualize.py                # Curvas de Loss y Accuracy
-│
-├── 🔧 MÓDULOS CORE (Implementación desde cero)
-│   ├── network.py                  # Red neuronal + backpropagation (450 líneas)
-│   ├── layers.py                   # Capa densa con forward/backward (320 líneas)
-│   ├── activation.py               # 6 activaciones + derivadas (380 líneas)
-│   ├── loss.py                     # Cross-entropy + derivadas (270 líneas)
-│   ├── metrics.py                  # Accuracy, Precision, Recall, F1 (280 líneas)
-│   ├── preprocessing.py            # Normalización de datos (280 líneas)
-│   ├── initialization.py           # He/Xavier weight init (310 líneas)
-│   ├── utils.py                    # Helpers y save/load (240 líneas)
-│   └── config.py                   # Configuración (160 líneas)
-│
-├── 🧪 TESTS
-│   └── test_integration.py         # Test completo de todos los componentes
-│
-├── 🎨 OUTPUT (Generados por los scripts)
-│   ├── model_weights.npy           # Modelo entrenado (20 KB)
-│   ├── training_history.json       # Historial de épocas
-│   ├── loss_curve.png              # Figura IV.1 (Loss)
-│   └── accuracy_curve.png          # Figura IV.2 (Accuracy)
-│
-├── 📖 DOCUMENTACIÓN
-│   ├── README.md                   # Guía de uso completa
-│   ├── ARCHITECTURE.md             # Diseño técnico del sistema
-│   ├── MATES.md                    # Fundamentos matemáticos
-│   ├── RESULTS.md                  # Resultados detallados
-│   ├── COMPLIANCE.md               # Checklist completo del subject
-│   └── EVALUATION.md               # Este archivo (guía evaluación)
-│
-└── ⚙️ UTILIDADES
-    ├── Makefile                    # Automatización de comandos
-    ├── requirements.txt            # Dependencias Python
-    └── .gitignore                  # Archivos ignorados por git
-```
-
-**Total líneas de código:** ~3,000 (sin contar tests y visualización)
+* **Gráfica 1: `loss_curve.png` (La curva de los fallos — cuanto más abajo, mejor):**
+  * **Qué muestra:** La línea azul (*Training Loss*) mide el error de la red mientras estudia sus apuntes; la línea roja (*Validation Loss*) mide el error al enfrentarse a un examen sorpresa con casos nuevos.
+  * **Qué vemos aquí:** Ambas líneas caen en picado desde la época 1 hasta estabilizarse cerca de `0.11` (validación) y `0.02` (entrenamiento). Alrededor de la época 15, la línea roja toca su punto más bajo (`0.1154`) y a partir de ahí empieza a subir muy suavemente mientras la azul sigue bajando: ahí es justo donde actúa nuestro **Early Stopping**, deteniendo el proceso y guardando los pesos de la época 15 antes de que la red empiece a memorizar en lugar de aprender.
+* **Gráfica 2: `accuracy_curve.png` (La curva de los aciertos — cuanto más arriba, mejor):**
+  * **Qué muestra:** El porcentaje de pacientes diagnosticados correctamente en cada época (donde `1.00` = 100% de aciertos).
+  * **Qué vemos aquí:** En solo 3 épocas el modelo salta del `92%` a superar el `95.6%` en casos nuevos (línea roja), alcanzando el **`96.49%`** en la época 15 y manteniéndose estable sin caídas bruscas.
+* **Analogía cotidiana (El estudiante preparando un examen):**
+  * Imagina que preparas un examen haciendo tests de práctica en casa (**línea azul**) y cada tarde haces un simulacro oficial con preguntas nuevas (**línea roja**). Los primeros días mejoras muchísimo en ambos; pero si sigues estudiando exactamente los mismos tests de casa durante semanas, sacarás un 10 en casa (`99.78%`) pero dejarás de mejorar en preguntas nuevas (`96.49%`). El punto óptimo para presentarte al examen es justo cuando tu nota en los simulacros nuevos toca techo (época 15).
 
 ---
 
-## ⏱️ Flujo de Evaluación Sugerido
+### 2. Prediction & Model Performances (Prueba en Vivo con `evaluation.py`)
 
-### Opción A: Evaluación Rápida (10 minutos)
+Esta sección corresponde exactamente al bloque **Prediction** de la hoja de corrección oficial.
 
-1. **Test de integración** (30s)
-   ```bash
-   python3 test_integration.py
-   ```
+#### Paso 1: Generar los datos oficiales de evaluación y dividir `data_training.csv` (se ejecuta UNA sola vez)
+> **💡 Paso imprescindible:** `evaluation.py` crea `data_training.csv` (427 muestras) y `data_test.csv` (142 muestras). Como `train.py` necesita un archivo `data_validation.csv` para monitorizar el aprendizaje y el *Early Stopping*, dividimos el `data_training.csv` oficial (en ~341 train y ~86 validation), dejando `data_test.csv` **100% intacto y virgen** para el examen final.
 
-2. **Verificar código backpropagation** (2 min)
-   ```bash
-   grep -A 30 "def backward" network.py
-   ```
-
-3. **Verificar Binary Cross-Entropy** (1 min)
-   ```bash
-   grep -A 15 "def binary_crossentropy" loss.py
-   ```
-
-4. **Ver resultados ya obtenidos** (2 min)
-   ```bash
-   cat RESULTS.md
-   cat COMPLIANCE.md
-   ```
-
-5. **Hacer predicción con modelo guardado** (30s)
-   ```bash
-   make predict
-   ```
-
-6. **Preguntas de defensa** (5 min)
-   - ¿Qué es backpropagation?
-   - ¿Por qué Binary Cross-Entropy?
-   - ¿Cómo funciona softmax?
-   - ¿Por qué early stopping?
-
----
-
-### Opción B: Evaluación Completa (20 minutos)
-
-1. **Test de integración** (30s)
-   ```bash
-   python3 test_integration.py
-   ```
-
-2. **Limpiar y reentrenar desde cero** (10s)
-   ```bash
-   make fclean
-   make split
-   make train
-   ```
-   ⏱️ 7 segundos de entrenamiento
-
-3. **Hacer predicciones** (5s)
-   ```bash
-   make predict
-   ```
-
-4. **Generar visualizaciones** (10s)
-   ```bash
-   make visualize
-   # Ver: loss_curve.png, accuracy_curve.png
-   ```
-
-5. **Revisar código** (5 min)
-   - `network.py`: Backpropagation
-   - `loss.py`: Binary Cross-Entropy
-   - `train.py`: Training loop
-
-6. **Preguntas de defensa** (10 min)
-   - Explicar algoritmo completo
-   - Justificar decisiones de diseño
-   - Demostrar comprensión matemática
-
----
-
-## 🔍 Puntos Clave para el Evaluador
-
-### ✅ Requisitos Críticos (Must Have)
-
-1. **Backpropagation implementado desde cero** ✅
-   - Archivo: `network.py` líneas 195-380
-   - No usa autograd de ningún framework
-
-2. **Binary Cross-Entropy implementado y usado** ✅
-   - Archivo: `loss.py` líneas 45-58
-   - Fórmula exacta del subject página 10
-   - Usado en evaluación de `predict.py`
-
-3. **Mínimo 2 capas ocultas** ✅
-   - Arquitectura: 30 → 24 → 24 → 2
-
-4. **Softmax en output** ✅
-   - Archivo: `activation.py` líneas 149-195
-   - Aplicado en última capa
-
-5. **Train/Validation split** ✅
-   - 80% train (455) / 20% validation (114)
-
-6. **Curvas Loss y Accuracy** ✅
-   - `loss_curve.png`, `accuracy_curve.png`
-
-7. **Programa predicción separado** ✅
-   - `predict.py` independiente de `train.py`
-
----
-
-### ⭐ Extras Implementados (Nice to Have)
-
-- ✅ Early stopping (bonus)
-- ✅ Múltiples métricas (bonus)
-- ✅ Múltiples activaciones (bonus)
-- ✅ Inicialización He/Xavier (bonus)
-- ✅ Batch training (bonus)
-- ✅ Arquitectura configurable (bonus)
-- ✅ Test de integración completo
-- ✅ Documentación exhaustiva
-
----
-
-## 🚨 Posibles Preguntas Difíciles
-
-### "¿Por qué ReLU y no sigmoid como en el subject?"
-
-**Respuesta:**
-- El subject permite elegir activación (página 8: "you must use activation functions")
-- Probé sigmoid primero → vanishing gradients → modelo estancado
-- ReLU resuelve vanishing gradients → 96.49% accuracy
-- He initialization optimizado para ReLU
-- Ver comparación en `RESULTS.md` sección "Configuraciones"
-
-**Evidencia:**
-```
-Config 1 (sigmoid):  Accuracy = 55% (estancado)
-Config 2 (ReLU):     Accuracy = 96.49% ✅
-```
-
----
-
-### "¿Implementaste todo desde cero sin frameworks?"
-
-**Respuesta:** Sí, verificable:
-- No hay imports de TensorFlow, Keras, PyTorch, sklearn.neural_network
-- Solo NumPy para operaciones matriciales básicas
-- Backpropagation implementado manualmente en `network.py`
-- Todas las derivadas calculadas a mano
-
-**Verificar imports:**
 ```bash
-grep -h "^import\|^from" *.py | sort -u
+python3 evaluation.py
+python3 split_dataset.py data_training.csv
+```
+> **⚠️ Importante:** **No vuelvas a ejecutar ninguno de estos dos comandos entre intento e intento**, para que los 3 intentos se entrenen y evalúen sobre exactamente los mismos archivos (`data_training.csv`, `data_validation.csv` y `data_test.csv`).
+
+---
+
+#### Paso 2: Entrenar y evaluar hasta 3 modelos (quedándose con el mejor)
+
+La rúbrica oficial permite entrenar **hasta 3 modelos** sobre `data_training.csv` (ya que el entrenamiento depende de factores aleatorios como la inicialización de pesos o el dropout) y quedarse con el **valor más bajo** obtenido en `data_test.csv`.
+
+Los 3 intentos usan **`Tanh + Xavier + Adam`**, que es la combinación que mejor calibra las probabilidades para bajar la *Binary Cross-Entropy* por debajo de **`0.08`** (5/5 puntos):
+
+* **🥇 Intento 1 — Configuración Principal (`Tanh + Xavier`, `seed 42`, `dropout 0.3`):**
+  ```bash
+  ./train.py --dataset data_training.csv --layers 24 12 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.3 --epochs 100 --batch_size 16 --early_stopping --patience 15 --seed 42
+  python3 predict.py --dataset data_test.csv --model model_weights.npy
+  ```
+
+* **🥈 Intento 2 — Variación de Semilla y Regularización (`Tanh + Xavier`, `seed 7`, `dropout 0.25`):**
+  ```bash
+  ./train.py --dataset data_training.csv --layers 24 12 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.25 --epochs 100 --batch_size 16 --early_stopping --patience 15 --seed 7
+  python3 predict.py --dataset data_test.csv --model model_weights.npy
+  ```
+
+* **🥉 Intento 3 — Red Compacta con Más Paciencia (`Tanh + Xavier`, `layers 16 8`, `seed 21`, `dropout 0.2`):**
+  ```bash
+  ./train.py --dataset data_training.csv --layers 16 8 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.2 --epochs 120 --batch_size 16 --early_stopping --patience 20 --seed 21
+  python3 predict.py --dataset data_test.csv --model model_weights.npy
+  ```
+
+---
+
+#### Paso 3: ¿Qué número hay que mirar y dónde aparece?
+
+Es fundamental distinguir la salida de cada script para no confundirse durante la corrección:
+
+1. **En `./train.py ...` NO sale la nota:** Los valores `loss` y `val_loss` que aparecen época a época solo sirven para monitorizar el aprendizaje interno.
+2. **La nota final sale exclusivamente en `python3 predict.py ...`:** Al ejecutar `predict.py` sobre `data_test.csv`, busca el bloque **`📏 Evaluación con Binary Cross-Entropy (según subject):`** en la terminal:
+
+```text
+📏 Evaluación con Binary Cross-Entropy (según subject):
+
+   Binary Cross-Entropy: 0.067881   <-- ESTE ES EL ÚNICO NÚMERO QUE MIRA EL EVALUADOR
 ```
 
-**Output esperado:**
-```python
-import json
-import numpy as np
-import matplotlib.pyplot as plt
-from math import log, exp, tanh as math_tanh
-# etc. - NINGÚN framework de ML
-```
+Se anota el **valor más bajo** de `Binary Cross-Entropy` conseguido entre los 3 intentos y se busca en la siguiente tabla:
 
 ---
 
-### "¿Por qué 4 falsos negativos?"
+#### Paso 4: Tabla oficial de puntuación (Binary Cross-Entropy en `data_test.csv`)
 
-**Respuesta:**
-- Modelo tiene recall 92.16% (detecta 47/51 malignos)
-- Trade-off precision-recall: priorizo 100% precision → 0 falsos positivos
-- En contexto médico: mejor falso negativo que falso positivo (evita biopsias innecesarias)
-- Mejoras posibles: ajustar threshold de decisión, más datos, dropout
-
----
-
-## ✅ Checklist Final del Evaluador
-
-### Parte Mandatory
-
-- [ ] ✅ split_dataset.py existe y funciona
-- [ ] ✅ train.py existe y funciona
-- [ ] ✅ predict.py existe y funciona
-- [ ] ✅ Arquitectura tiene ≥2 capas ocultas
-- [ ] ✅ Softmax en output layer
-- [ ] ✅ Backpropagation implementado desde cero
-- [ ] ✅ Binary Cross-Entropy implementado y usado
-- [ ] ✅ Curvas Loss y Accuracy generadas
-- [ ] ✅ Modelo se guarda y carga correctamente
-- [ ] ✅ Métricas mostradas por época
-- [ ] ✅ Sin uso de frameworks ML (TensorFlow, Keras, PyTorch)
-
-### Parte Bonus (Opcional)
-
-- [x] ✅ Early stopping
-- [x] ✅ Múltiples métricas (Precision, Recall, F1, Specificity)
-- [x] ✅ Múltiples activaciones disponibles (6 funciones)
-- [x] ✅ Inicialización He/Xavier
-- [x] ✅ Batch training
-- [x] ✅ Hiperparámetros configurables
-- [x] ✅ **Optimizadores avanzados (Adam, RMSprop, SGD Momentum)** - IMPLEMENTADO
-- [x] ✅ **Dropout** - IMPLEMENTADO (inverted dropout)
+| Valor de Binary Cross-Entropy ($E$) | Puntuación | Estado |
+| :--- | :---: | :--- |
+| Mayor a `0.35` | **0 / 5** | Insuficiente |
+| Entre `0.35` y `0.25` | **1 / 5** | Básico |
+| Entre `0.25` y `0.18` | **2 / 5** | Aceptable |
+| Entre `0.18` y `0.13` | **3 / 5** | Bueno |
+| Entre `0.13` y `0.08` | **4 / 5** | Muy bueno |
+| **Menor a `0.08`** | **5 / 5** | **Excelente (Objetivo cumplido — `< 0.08`)** |
 
 ---
 
-## 🎓 Notas para el Estudiante
+## ⭐ Bonus Part (Verificables durante la defensa)
 
-### Antes de la Evaluación
-
-1. **Leer ARCHITECTURE.md:** Diseño completo del sistema
-2. **Ejecutar `make test`:** Asegurar que todo funciona
-3. **Revisar código fuente:** Fórmulas matemáticas en `loss.py`, `activation.py`, `network.py`, `optimizers.py`
-4. **Preparar defensa:**
-   - Explicar backpropagation paso a paso
-   - Justificar elección de hiperparámetros
-   - Explicar Binary Cross-Entropy
-
-### Durante la Evaluación
-
-1. **Demostrar funcionamiento:**
-   ```bash
-   make fclean  # Limpiar todo
-   make split   # Dividir datos
-   make train   # Entrenar (7 segundos)
-   make predict # Predecir
-   ```
-
-2. **Mostrar código clave:**
-   - Backpropagation: `network.py` línea 195-270
-   - Binary Cross-Entropy: `loss.py` línea 45-58
-   - Softmax: `activation.py` línea 149-195
-
-3. **Explicar decisiones:**
-   - ¿Por qué ReLU? → Evita vanishing gradients
-   - ¿Por qué He init? → Óptimo para ReLU
-   - ¿Por qué early stopping? → Previene overfitting
+* **Optimizadores avanzados (`optimizers.py`):** Implementación desde cero de `sgd_momentum`, `rmsprop` y `adam`.
+* **Early Stopping (`network.py`):** Detiene el entrenamiento si `val_loss` deja de mejorar durante `N` épocas (`--patience`) y restaura los mejores pesos.
+* **Dropout (`layers.py`):** Regularización mediante *inverted dropout* (`--dropout`) para evitar el sobreajuste.
+* **Inicialización de pesos (`initialization.py`):** Métodos `he`, `xavier` y `random`.
+* **Funciones de activación (`activation.py`):** 6 funciones con sus derivadas (`sigmoid`, `tanh`, `relu`, `leaky_relu`, `softmax`, `linear`).
+* **Métricas adicionales (`metrics.py`):** Accuracy, Precision, Recall, F1-Score, Specificity y Matriz de Confusión.
+* **Historial y gráficas combinadas (`visualize.py`):** Exportación a JSON y visualización comparativa.
 
 ---
 
-## 📚 Referencias para Defensa
+## 💡 Glosario Didáctico (Conceptos Clave Explicados de Forma Sencilla)
 
-| Tema | Archivo | Líneas |
-|------|---------|--------|
-| Backpropagation | `network.py` | 195-270 |
-| Binary Cross-Entropy | `loss.py` | 45-58 |
-| Softmax | `activation.py` | 149-195 |
-| Gradient Descent | `network.py` | 390-410 |
-| Forward Pass | `network.py` | 130-160 |
-| He Initialization | `initialization.py` | 45-90 |
+Esta sección sirve como apoyo rápido durante la defensa para explicar cualquier término técnico de forma clara y con analogías cotidianas.
+
+### 1. Datos y Preparación
+
+* **Dataset:** Es la tabla completa de datos con la que trabaja el proyecto. En nuestro caso son **569 casos médicos** (filas), cada uno con **30 mediciones** de células (columnas) y el diagnóstico real (`M` = Maligno, `B` = Benigno).
+* **Media ($\mu$):** El promedio de una columna de datos (sumar todos los valores y dividir entre el total).
+* **Desviación estándar ($\sigma$):** Mide qué tan dispersos o separados están los datos respecto a la media. *Ejemplo:* Si en una clase todos miden 1.75 m, la desviación es casi 0; si hay niños de 1.20 m y adultos de 1.95 m, la desviación es alta.
+* **Normalización (Min-Max):** Escalar todos los datos para que quepan exactamente entre **0 y 1**. *Ejemplo:* Convertir notas de distintos exámenes (unos sobre 10, otros sobre 100) a una escala común de 0 a 1.
+* **Estandarización (Z-score):** Transformar los datos para que tengan **media 0 y desviación estándar 1** usando $z = \frac{x - \mu}{\sigma}$. Es crucial aquí porque una columna puede medir el área del tumor (valores de `500` a `2500`) y otra la suavidad (valores de `0.05` a `0.15`); sin estandarizar, la red creería que el área es más importante solo por tener números más grandes.
+* **Seed (Semilla aleatoria):** Un número fijo que controla el generador de números aleatorios. Sirve para que, si repetimos el experimento hoy o mañana, los datos se mezclen igual y los pesos empiecen con los mismos valores, haciendo el resultado reproducible.
+
+### 2. Estructura de la Red Neuronal
+
+* **Neurona (Perceptrón):** La unidad básica de cálculo. Recibe varios números de entrada, los multiplica por su importancia (**pesos**), suma un ajuste base (**bias**) y pasa el resultado por una **función de activación**.
+* **Capas (*Layers*):** Grupos de neuronas organizadas en fila:
+  * *Capa de entrada (Input):* Recibe los 30 datos del paciente.
+  * *Capas ocultas (Hidden):* Capas intermedias donde la red combina datos y detecta patrones complejos (por ejemplo, combinaciones de tamaño + irregularidad).
+  * *Capa de salida (Output):* Entrega el veredicto final (2 neuronas: probabilidad de Benigno y probabilidad de Maligno).
+
+### 3. Funciones de Activación (Deciden cuánto "se enciende" una neurona)
+
+* **Sigmoid:** Aplasta cualquier número para dejarlo entre **0 y 1** en forma de curva "S". Fue muy usada históricamente, pero en redes profundas hace que el aprendizaje se vuelva muy lento (*vanishing gradient*), como se ve si entrenamos solo 100 épocas con SGD básico.
+* **Tanh (Tangente hiperbólica):** Aplasta los valores entre **-1 y 1**, centrando las salidas alrededor de 0. En nuestro dataset médico ofrece una calibración de probabilidades superior a ReLU, evitando predicciones excesivamente extremas y logrando bajar la *Binary Cross-Entropy* por debajo de `0.07`.
+* **ReLU (*Rectified Linear Unit*):** Si el número es negativo lo convierte en **0**, y si es positivo lo deja pasar tal cual ($\max(0, x)$). *Analogía:* Es como un filtro que ignora señales negativas/irrelevantes y deja pasar sin freno las señales útiles. Permite entrenar muy rápido, aunque puede generar salidas grandes que hacen que `softmax` sea demasiado confiado ante un error.
+* **Softmax:** Se usa exclusivamente en la capa final. Convierte los números crudos de salida en **porcentajes que suman 100% (1.0)**. *Ejemplo:* Transforma `[2.0, 0.5]` en `[0.82, 0.18]` (82% Benigno, 18% Maligno).
+
+### 4. Aprendizaje y Optimización
+
+* **Época (*Epoch*):** Una vuelta completa en la que la red neuronal ha visto y estudiado **todos** los ejemplos del conjunto de entrenamiento una vez. *Analogía:* Leer todo el temario de un examen de principio a fin una vez; entrenar 30 épocas es darle 30 repasos completos al temario.
+* **Función de pérdida (*Loss function*):** La fórmula matemática que mide **qué tan equivocada está la red**. Cuanto más cerca de **0**, mejor. Aquí usamos **Binary Cross-Entropy**, que castiga muy severamente cuando la red dice estar "99.9% segura" de un diagnóstico que resulta ser falso.
+* **Loss vs. Val_Loss:**
+  * `loss`: El error de la red sobre los datos que está estudiando (entrenamiento).
+  * `val_loss`: El error sobre datos nuevos que **no** usa para estudiar (validación). Es el indicador real de si está aprendiendo o simplemente memorizando.
+* **Acc / Val_Acc (*Accuracy*):** El porcentaje de aciertos directos (ej. `0.9859` = 98.59% de pacientes diagnosticados correctamente).
+* **Learning Rate (Tasa de aprendizaje):** El tamaño de los pasos que da la red al corregir sus errores.
+  * *Muy bajo (ej. `0.0001`):* Avanza como una hormiga; necesita miles de épocas.
+  * *Muy alto (ej. `1.0`):* Da saltos gigantes y se pasa de largo del punto óptimo sin lograr estabilizarse.
+* **SGD (*Stochastic Gradient Descent*):** El método clásico para ajustar los pesos. Calcula la pendiente del error y da un paso fijo hacia abajo.
+* **Adam (*Adaptive Moment Estimation*):** Un optimizador inteligente moderno. Combina **inercia** (si lleva varias épocas bajando en la misma dirección, acelera) con **pasos adaptativos** (ajusta la velocidad individualmente para cada parámetro). Por eso converge mucho más rápido que SGD.
+
+### 5. Problemas Comunes y Soluciones
+
+* **Overfitting (Sobreajuste):** Ocurre cuando la red **memoriza** los ejemplos de entrenamiento en lugar de aprender reglas generales. *Analogía:* Un estudiante que se aprende de memoria las respuestas de un examen de prueba: saca un 10 en ese examen (`loss` casi 0), pero suspende el examen real con preguntas nuevas (`val_loss` empieza a subir).
+* **Dropout:** Técnica de regularización que "apaga" aleatoriamente un porcentaje de neuronas (ej. 30% con `--dropout 0.3`) en cada paso del entrenamiento. *Analogía:* Obligar a un equipo a trabajar cada día sin algunos de sus miembros para que nadie dependa de una sola persona y todos aprendan a resolver el problema de forma robusta.
+* **Early Stopping (Parada temprana):** Un mecanismo de seguridad que vigila `val_loss`. Si ve que el error en validación deja de mejorar durante varias épocas seguidas (ej. `patience=15`), detiene el entrenamiento y recupera los pesos del mejor momento antes de que empezara el *overfitting*.
 
 ---
 
-## 🏆 Puntos Fuertes del Proyecto
+## 🎯 Las 4 Preguntas Obligatorias de la Defensa (Guía Rápida)
 
-1. **100% Precision:** Sin falsos positivos (crítico en medicina)
-2. **96.49% Accuracy:** Excelente para implementación desde cero
-3. **Early Stopping efectivo:** Convergencia en 19/150 épocas
-4. **Código limpio:** Modular, documentado, testeado
-5. **Documentación completa:** 5 archivos MD explicativos
-6. **Tests passing:** `test_auto.sh` verifica 20 comprobaciones, incluidas comprobaciones matemáticas
-7. **Reproducible:** Seed fijo, documentación detallada
+La rúbrica oficial evalúa de 0 a 5 la comprensión de estos 4 conceptos:
 
----
+1. **Feedforward (Propagación hacia adelante):**
+   * Los datos entran por la primera capa y avanzan capa por capa hasta la salida.
+   * En cada capa se realiza una multiplicación matricial ($Z = X \cdot W + b$) y se aplica una función de activación ($A = f(Z)$).
+   * Al final, Softmax entrega las probabilidades de cada clase.
 
-## ⚠️ Limitaciones Conocidas
+2. **Gradient Descent (Descenso del gradiente):**
+   * Algoritmo de optimización cuyo objetivo es encontrar los pesos $W$ y sesgos $b$ que minimizan la función de pérdida.
+   * Calcula la derivada (gradiente) del error respecto a cada peso para saber hacia dónde sube el error, y actualiza el peso en la dirección opuesta proporcionalmente al *learning rate* ($W_{nuevo} = W_{actual} - \alpha \cdot \nabla W$).
 
-1. **4 Falsos Negativos:** Recall 92.16% (margen de mejora con dropout/regularización)
-2. **El resultado depende de la partición y de los hiperparámetros:** la cifra documentada es una ejecución reproducible, no una garantía universal.
-3. **Los bonus deben defenderse:** Adam, Dropout, early stopping y las métricas adicionales se verifican con ejecuciones y no sustituyen la comprensión del mandatory.
+3. **Backpropagation (Retropropagación):**
+   * Es el algoritmo que permite calcular esos gradientes de forma eficiente desde la última capa hacia la primera utilizando la **regla de la cadena** del cálculo diferencial.
+   * Primero calcula cuánto se equivocó la salida ($\delta^{[L]} = \hat{y} - y$) y reparte la culpa hacia atrás capa por capa para saber cuánto contribuyó cada peso al error final.
 
----
-
-## 🎯 Veredicto Esperado
-
-**Mandatory:** ✅ Implementado y verificable
-**Bonus:** ✅ Implementado y verificable; la puntuación depende de la defensa
-**Performance:** ✅ 96.49% accuracy (excelente)  
-**Code Quality:** ✅ Limpio, modular, testeado  
-**Documentation:** ✅ Completa y detallada  
-
-**Calificación:** debe determinarla la evaluación humana; la documentación no sustituye la defensa ni garantiza una puntuación.
+4. **Overfitting (Sobreajuste):**
+   * Sucede cuando el modelo se ajusta demasiado al ruido o particularidades del set de entrenamiento, perdiendo capacidad de generalizar en datos nuevos.
+   * **Cómo se detecta en nuestras gráficas:** `loss` sigue bajando hacia 0 mientras `val_loss` se estanca o empieza a subir.
+   * **Cómo lo prevenimos en este proyecto:** Con la división *train/validation*, *Early Stopping* y regularización mediante *Dropout*.
 
 ---
 
-**¡Buena suerte en la evaluación!** 🍀
+## 💡 Argumentos Clave si el Evaluador Pregunta por el Diseño
 
-**Comandos rápidos:**
-```bash
-python3 test_integration.py  # Test completo en 10s
-make train                   # Entrenar modelo (7s)
-make predict                 # Ver resultados (1s)
-```
+### ¿Por qué `Tanh + Xavier + Dropout 0.3` funciona mejor aquí que `ReLU`?
+* **Calibración de probabilidades (clave para *Binary Cross-Entropy*):** En datasets tabulares médicos pequeños (569 muestras), `ReLU` puede generar activaciones lineales grandes que vuelven a `softmax` excesivamente confiado (ej. `0.999999` vs `0.000001`). Como la entropía cruzada penaliza logarítmicamente ($-\log(p)$), un solo fallo con confianza extrema dispara el error global. `Tanh` acota las salidas entre `-1` y `1`, manteniendo probabilidades suaves y bien calibradas (`0.0678` de *Binary Cross-Entropy* y **98.59% de Accuracy**).
+* **Inicialización Xavier:** Está diseñada matemáticamente para mantener estable la varianza de las activaciones y gradientes en funciones simétricas como `tanh`.
+* **Dropout (`0.3`) + Early Stopping:** Evita que los 1070 parámetros de la red memoricen las 427 muestras de entrenamiento, logrando **0 falsos positivos** (`100%` Precision y Specificity) en datos completamente desconocidos (`data_test.csv`).
+
+---
+
+## 📁 Mapa Rápido del Código para Mostrar al Evaluador
+
+| Concepto | Archivo | Líneas aprox. |
+| :--- | :--- | :---: |
+| **Forward Pass** | `network.py` | `130 - 160` |
+| **Backpropagation** | `network.py` | `195 - 270` |
+| **Gradient Descent / Update** | `network.py` / `optimizers.py` | `390 - 410` |
+| **Binary Cross-Entropy** | `loss.py` | `45 - 58` |
+| **Softmax y Activaciones** | `activation.py` | `149 - 195` |
+| **Inicialización He / Xavier** | `initialization.py` | `45 - 90` |
