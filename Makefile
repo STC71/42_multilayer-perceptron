@@ -263,6 +263,7 @@ fclean: clean
 	@rm -f $(MODEL)
 	@rm -f *.npy
 	@rm -rf venv
+	@rm -rf Ejecutar
 	@echo "$(GREEN)✅ Limpieza completa finalizada$(RESET)"
 
 .PHONY: re

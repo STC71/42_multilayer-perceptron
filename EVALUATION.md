@@ -23,8 +23,9 @@
 
 ### 1️⃣ Verificar estructura e independencia de frameworks
 
+Ejecuta estos comandos **desde la raíz del repositorio del proyecto** (el directorio donde están `train.py`, `data.csv`, `Makefile`, etc.). Si ya estás ahí, **no** hace falta ningún `cd`.
+
 ```bash
-cd artificial_intelligence/multilayer-perceptron
 ls -la
 grep -h "^import\|^from" *.py | sort -u
 ```
@@ -104,18 +105,70 @@ make visualize
 
 ---
 
-### 2. Prediction & Model Performances (Prueba en Vivo con `evaluation.py`)
+### 2. Prediction (hoja de evaluación oficial)
 
-Esta sección corresponde exactamente al bloque **Prediction** de la hoja de corrección oficial.
+> **Importante — no mezclar con la parte 1:**  
+> El `make train` / `make visualize` de arriba sirven para **demostrar** que el entrenamiento funciona (métricas por época, curvas, guardado, no overfitting).  
+> La **nota 0–5 de Model performances** se obtiene **solo** con el flujo de esta sección 2, sobre la partición oficial de `evaluation.py`.  
+> El modelo y el `data_training.csv` de la parte 1 **no** cuentan para esa casilla.
 
-#### Paso 1: Generar los datos oficiales de evaluación y dividir `data_training.csv` (se ejecuta UNA sola vez)
-> **💡 Paso imprescindible:** `evaluation.py` crea `data_training.csv` (427 muestras) y `data_test.csv` (142 muestras). Como `train.py` necesita un archivo `data_validation.csv` para monitorizar el aprendizaje y el *Early Stopping*, dividimos el `data_training.csv` oficial (en ~341 train y ~86 validation), dejando `data_test.csv` **100% intacto y virgen** para el examen final.
+La hoja de evaluación divide Prediction en tres bloques: **Loading** → **Metrics** → **Model performances**.
+
+---
+
+#### 2.0 Loading y Metrics (casillas Yes/No de la escala)
+
+Antes de puntuar el BCE (0–5), la escala exige comprobar Loading y Metrics.
+
+**Importante sobre el orden de ficheros:**
+* Tras `make train` solo existen `data_training.csv` y `data_validation.csv`.
+* **`data_test.csv` aún no existe** hasta ejecutar `evaluation.py` (Paso 1 más abajo).
+* Para comprobar Loading **justo después** de `make train`, usa `data_validation.csv`.
+* La nota oficial 0–5 se mide **solo** sobre `data_test.csv` tras el Paso 1 y un entreno nuevo.
+
+**Loading — Yes / No**
+* El programa carga **topología + pesos** (no valores hard-coded).
+* Carga correctamente el dataset de predicción.
+
+```bash
+# Comprobacion en codigo:
+grep -n "load\|weights\|architecture\|dataset" predict.py | head -25
+
+# Prueba en vivo DESPUES de make train (usa validation; data_test aun no existe):
+python3 predict.py --dataset data_validation.csv --model model_weights.npy
+```
+
+**Metrics — Yes / No**
+* La predicción evalúa con **Binary Cross-Entropy**.  
+  Si no es así, Model performances **no se puede puntuar**.
+
+```bash
+grep -n "binary_crossentropy\|Binary Cross-Entropy" predict.py loss.py
+```
+
+En la salida de `predict.py` debe aparecer un bloque con el valor de Binary Cross-Entropy.
+
+Solo cuando Loading = Yes y Metrics = Yes tiene sentido el flujo oficial de rendimiento (Pasos 1–4).
+
+---
+
+#### Paso 1: Partición oficial (se ejecuta UNA sola vez)
+
+`evaluation.py` del subject **no descarga nada**: parte el `data.csv` local, lo baraja y genera:
+* `data_training.csv` (~75 %)
+* `data_test.csv` (~25 %)
 
 ```bash
 python3 evaluation.py
 python3 split_dataset.py data_training.csv
 ```
-> **⚠️ Importante:** **No vuelvas a ejecutar ninguno de estos dos comandos entre intento e intento**, para que los 3 intentos se entrenen y evalúen sobre exactamente los mismos archivos (`data_training.csv`, `data_validation.csv` y `data_test.csv`).
+
+> **⚠️ Entre intento e intento no vuelvas a ejecutar** `evaluation.py` ni `split_dataset.py data_training.csv`, **si quieres** que los 3 entrenos usen exactamente los mismos ficheros.
+
+**Por qué este orden (y qué se quedaba fuera si se saltaba):**
+1. Sin limpiar, puedes entrenar o predecir sobre un `data_training.csv` viejo (split 80/20 de desarrollo) en lugar del oficial.
+2. Sin `split_dataset.py data_training.csv`, `train.py` no tiene `data_validation.csv` → no hay `val_loss` fiable ni Early Stopping durante los intentos de nota.
+3. `data_test.csv` no debe usarse nunca para entrenar ni para early stopping; solo para `predict.py` al final de cada intento.
 
 ---
 
@@ -123,22 +176,68 @@ python3 split_dataset.py data_training.csv
 
 La rúbrica oficial permite entrenar **hasta 3 modelos** sobre `data_training.csv` (ya que el entrenamiento depende de factores aleatorios como la inicialización de pesos o el dropout) y quedarse con el **valor más bajo** obtenido en `data_test.csv`.
 
-Los 3 intentos usan **`Tanh + Xavier + Adam`**, que es la combinación que mejor calibra las probabilidades para bajar la *Binary Cross-Entropy* por debajo de **`0.08`** (5/5 puntos):
+Los 3 intentos usan **`Tanh + Xavier + Adam`**, que es la combinación que mejor calibra las probabilidades para bajar la *Binary Cross-Entropy* por debajo de **`0.08`** (5/5 puntos).
 
-* **🥇 Intento 1 — Configuración Principal (`Tanh + Xavier`, `seed 42`, `dropout 0.3`):**
+**¿Por qué esta base común en los 3 intentos?**
+* **`tanh`:** acota las activaciones entre −1 y 1 → probabilidades de Softmax menos extremas → la Binary Cross-Entropy no se dispara por un solo fallo “muy seguro”.
+* **`xavier`:** inicialización pensada para activaciones simétricas como `tanh`; mantiene la varianza estable al principio del entrenamiento.
+* **`adam`:** combina momentum + pasos adaptativos → converge más rápido y estable que SGD puro en este dataset pequeño.
+* **`learning_rate 0.002` + `batch_size 16`:** pasos moderados con actualizaciones frecuentes; buen equilibrio entre velocidad y estabilidad.
+
+---
+
+* **🥇 Intento 1 — Configuración principal (`Tanh + Xavier`, `seed 42`, `dropout 0.3`)**
+
+  **Por qué este intento:** es la configuración de referencia: red con suficiente capacidad (`24 → 12`), regularización fuerte (`dropout 0.3`) y semilla fija reproducible (`42`). Busca el mejor equilibrio entre poder de ajuste y generalización.
+
+  **Particularidades de los flags:**
+  * `--layers 24 12` — dos capas ocultas; la segunda más estrecha fuerza a comprimir patrones útiles.
+  * `--dropout 0.3` — apaga el 30 % de neuronas en entrenamiento para reducir memorización.
+  * `--early_stopping --patience 15` — para si `val_loss` no mejora 15 épocas y restaura el mejor modelo.
+  * `--seed 42` — mismo punto de partida siempre (reproducible en la defensa).
+
   ```bash
+    # Intento 1 -> Ejecutar evaluation y split:
+  python3 evaluation.py
+  python3 split_dataset.py data_training.csv --train_ratio 0.85 --seed 42
+  # Entrenamiento y predicción:
   ./train.py --dataset data_training.csv --layers 24 12 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.3 --epochs 100 --batch_size 16 --early_stopping --patience 15 --seed 42
   python3 predict.py --dataset data_test.csv --model model_weights.npy
   ```
 
-* **🥈 Intento 2 — Variación de Semilla y Regularización (`Tanh + Xavier`, `seed 7`, `dropout 0.25`):**
+* **🥈 Intento 2 — Misma arquitectura, otra semilla y un poco menos de dropout (`seed 7`, `dropout 0.25`)**
+
+  **Por qué este intento:** el entrenamiento depende de la inicialización aleatoria. Cambiar solo la semilla (y bajar ligeramente el dropout) explora otra trayectoria de optimización sin cambiar la arquitectura. Si el Intento 1 cae en un mínimo mediocre, este puede encontrar uno mejor.
+
+  **Particularidades de los flags:**
+  * `--seed 7` — distinta secuencia de pesos iniciales y de máscaras de dropout.
+  * `--dropout 0.25` — un poco menos de regularización que el Intento 1; puede ajustar mejor si 0.3 era excesivo.
+  * Resto igual que el Intento 1 (misma capacidad de red y mismo optimizador).
+
   ```bash
+  # Intento 2 -> Ejecutar evaluation y split:
+  python3 evaluation.py
+  python3 split_dataset.py data_training.csv --train_ratio 0.85 --seed 42
+  # Entrenamiento y predicción:
   ./train.py --dataset data_training.csv --layers 24 12 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.25 --epochs 100 --batch_size 16 --early_stopping --patience 15 --seed 7
   python3 predict.py --dataset data_test.csv --model model_weights.npy
   ```
 
-* **🥉 Intento 3 — Red Compacta con Más Paciencia (`Tanh + Xavier`, `layers 16 8`, `seed 21`, `dropout 0.2`):**
+* **🥉 Intento 3 — Red más compacta y más paciencia (`layers 16 8`, `seed 21`, `dropout 0.2`, `patience 20`)**
+
+  **Por qué este intento:** una red más pequeña tiene menos parámetros → menos riesgo de overfitting. Se compensa con más épocas (`120`) y más paciencia (`20`) para darle tiempo a converger. Es el “plan B” si las redes grandes se pasan de memorona.
+
+  **Particularidades de los flags:**
+  * `--layers 16 8` — menos neuronas → modelo más simple y barato de entrenar.
+  * `--dropout 0.2` — regularización más suave (la red ya es pequeña).
+  * `--epochs 120 --patience 20` — más margen para encontrar un buen mínimo antes de parar.
+  * `--seed 21` — tercera trayectoria aleatoria distinta.
+
   ```bash
+  # Intento 3 -> Ejecutar evaluation y split:
+  python3 evaluation.py
+  python3 split_dataset.py data_training.csv
+  # Entrenamiento y predicción:
   ./train.py --dataset data_training.csv --layers 16 8 --activation tanh --weight_init xavier --optimizer adam --learning_rate 0.002 --dropout 0.2 --epochs 120 --batch_size 16 --early_stopping --patience 20 --seed 21
   python3 predict.py --dataset data_test.csv --model model_weights.npy
   ```
@@ -177,13 +276,42 @@ Se anota el **valor más bajo** de `Binary Cross-Entropy` conseguido entre los 3
 
 ## ⭐ Bonus Part (Verificables durante la defensa)
 
-* **Optimizadores avanzados (`optimizers.py`):** Implementación desde cero de `sgd_momentum`, `rmsprop` y `adam`.
-* **Early Stopping (`network.py`):** Detiene el entrenamiento si `val_loss` deja de mejorar durante `N` épocas (`--patience`) y restaura los mejores pesos.
-* **Dropout (`layers.py`):** Regularización mediante *inverted dropout* (`--dropout`) para evitar el sobreajuste.
-* **Inicialización de pesos (`initialization.py`):** Métodos `he`, `xavier` y `random`.
-* **Funciones de activación (`activation.py`):** 6 funciones con sus derivadas (`sigmoid`, `tanh`, `relu`, `leaky_relu`, `softmax`, `linear`).
-* **Métricas adicionales (`metrics.py`):** Accuracy, Precision, Recall, F1-Score, Specificity y Matriz de Confusión.
-* **Historial y gráficas combinadas (`visualize.py`):** Exportación a JSON y visualización comparativa.
+Cada bonus incluye: qué es (en una frase), por qué se implementó, y dónde mirarlo en el código.
+
+* **Optimizadores avanzados (`optimizers.py`)** — `sgd_momentum`, `rmsprop` y `adam`  
+  *Qué es:* algoritmos que actualizan los pesos de forma más inteligente que el SGD básico (con inercia y/o pasos adaptativos).  
+  *Por qué:* Adam suele converger antes y de forma más estable; permite alcanzar BCE &lt; 0.08 en menos épocas.  
+  *Dónde mirar:* `optimizers.py` — `SGDMomentum` (~63–125), `RMSprop` (~127–190), `Adam` (~192–280); flag `--optimizer` en `train.py` (~114–118).
+
+* **Early Stopping (`train.py`)** — para el entrenamiento si `val_loss` deja de mejorar  
+  *Qué es:* si la validación no mejora durante `N` épocas (`--patience`), se detiene y se restauran los mejores pesos.  
+  *Por qué:* evita seguir entrenando cuando la red ya solo memoriza (overfitting) y se queda con el mejor modelo visto.  
+  *Dónde mirar:* `train.py` — flags `--early_stopping` / `--patience` (~139–149); lógica de parada y restauración (~351–408).
+
+* **Dropout (`layers.py`)** — regularización por *inverted dropout*  
+  *Qué es:* durante el entrenamiento se “apagan” al azar un porcentaje de neuronas (`--dropout 0.3` = 30 %).  
+  *Por qué:* obliga a la red a no depender de pocas neuronas estrella; reduce overfitting en datasets pequeños.  
+  *Dónde mirar:* `layers.py` — parámetro `dropout_rate` (~44–62), aplicación en forward (~156–224), `_apply_dropout` (~236+); flag `--dropout` en `train.py` (~123–126).
+
+* **Inicialización de pesos (`initialization.py`)** — métodos `he`, `xavier` y `random`  
+  *Qué es:* forma de asignar los pesos iniciales antes de entrenar (no todos a cero ni al azar sin control).  
+  *Por qué:* una mala init hace que el entrenamiento no arranque o diverja; Xavier encaja con `tanh`, He con `relu`.  
+  *Dónde mirar:* `initialization.py` — `initialize_xavier_*` (~106–168), `initialize_he_*` (~170–233), selector `initialize_weights` (~270–302); flag `--weight_init` en `train.py` (~105–109).
+
+* **Funciones de activación (`activation.py`)** — 6 funciones + derivadas  
+  *Qué es:* el “filtro” no lineal de cada neurona: `sigmoid`, `tanh`, `relu`, `leaky_relu`, `softmax`, `linear`.  
+  *Por qué:* sin no-linealidad la red solo podría aprender planos; Softmax en la salida convierte logits en probabilidades.  
+  *Dónde mirar:* `activation.py` — `sigmoid` (~41), `tanh` (~90), `relu` (~144), `leaky_relu` (~191), `softmax` (~236), `linear` (~313); registry `get_activation` (~371).
+
+* **Métricas adicionales (`metrics.py`)** — más allá de accuracy  
+  *Qué es:* Precision, Recall, F1-Score, Specificity y matriz de confusión además de accuracy.  
+  *Por qué:* en diagnóstico médico no basta “acertar el %”; interesa saber falsos positivos/negativos.  
+  *Dónde mirar:* `metrics.py` — `compute_confusion_matrix` (~55), `compute_precision` (~110), `compute_recall` (~138), `compute_f1_score` (~166), `compute_specificity` (~190), `print_evaluation_report` (~218).
+
+* **Historial y gráficas combinadas (`visualize.py`)** — curvas del subject + vista conjunta  
+  *Qué es:* exporta el historial a JSON y genera `loss_curve.png`, `accuracy_curve.png` y opcionalmente una figura combinada.  
+  *Por qué:* el subject exige las curvas train/validation; permiten ver a ojo si el modelo aprende y si hay overfitting.  
+  *Dónde mirar:* `visualize.py` — `plot_loss_curve` (~50), `plot_accuracy_curve` (~98), `plot_combined_curves` (~149); guardado del historial en `train.py` (~452–454).
 
 ---
 
@@ -197,7 +325,12 @@ Esta sección sirve como apoyo rápido durante la defensa para explicar cualquie
 * **Media ($\mu$):** El promedio de una columna de datos (sumar todos los valores y dividir entre el total).
 * **Desviación estándar ($\sigma$):** Mide qué tan dispersos o separados están los datos respecto a la media. *Ejemplo:* Si en una clase todos miden 1.75 m, la desviación es casi 0; si hay niños de 1.20 m y adultos de 1.95 m, la desviación es alta.
 * **Normalización (Min-Max):** Escalar todos los datos para que quepan exactamente entre **0 y 1**. *Ejemplo:* Convertir notas de distintos exámenes (unos sobre 10, otros sobre 100) a una escala común de 0 a 1.
-* **Estandarización (Z-score):** Transformar los datos para que tengan **media 0 y desviación estándar 1** usando $z = \frac{x - \mu}{\sigma}$. Es crucial aquí porque una columna puede medir el área del tumor (valores de `500` a `2500`) y otra la suavidad (valores de `0.05` a `0.15`); sin estandarizar, la red creería que el área es más importante solo por tener números más grandes.
+* **Estandarización (Z-score):** Transformar los datos para que tengan **media 0 y desviación estándar 1** usando $z = \frac{x - \mu}{\sigma}$.<br>
+• $z $: Es el resultado. Indica a cuántas desviaciones estándar se encuentra el dato respecto a la media.<br>
+• $x $ (Valor observado): Es el dato individual que estás analizando (por ejemplo, la nota de un estudiante en un examen).<br>
+• $\mu $ (Mu - Media): Es el promedio de todos los datos de la población o grupo.<br>
+• $\sigma$ (Sigma - Desviación estándar): Es la medida que indica qué tan dispersos o separados están los datos respecto al promedio.<br>
+Es crucial aquí porque una columna puede medir el área del tumor (valores de `500` a `2500`) y otra la suavidad (valores de `0.05` a `0.15`); sin estandarizar, la red creería que el área es más importante solo por tener números más grandes.
 * **Seed (Semilla aleatoria):** Un número fijo que controla el generador de números aleatorios. Sirve para que, si repetimos el experimento hoy o mañana, los datos se mezclen igual y los pesos empiecen con los mismos valores, haciendo el resultado reproducible.
 
 ### 2. Estructura de la Red Neuronal
